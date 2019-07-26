@@ -96,7 +96,7 @@ def output_homing_status(macro, motorsInfoList):
     macro.flushOutput()
 
 
-def home(macro, motorsInfoList, group=True, strict=True):
+def home(macro, motorsInfoList, group=False, strict=False):
     """Performs icepap homing routine.
 
     :param macro: (macro obj) macro which will perform homing
@@ -170,3 +170,16 @@ def home(macro, motorsInfoList, group=True, strict=True):
         if timeouts > TIMEOUT_LIM:
             pool.SendToController([ctrlName, ABORT_CMD])
             macro.abort()
+
+
+def home_group_strict(macro, motorsInfoList):
+    home(macro, motorsInfoList, group=True, strict=True)
+
+
+def home_group(macro, motorsInfoList):
+    home(macro, motorsInfoList, group=True, strict=False)
+
+
+def home_strict(macro, motorsInfoList):
+    home(macro, motorsInfoList, group=False, strict=True)
+
