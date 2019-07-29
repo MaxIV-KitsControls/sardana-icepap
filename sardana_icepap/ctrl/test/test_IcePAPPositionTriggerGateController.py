@@ -27,7 +27,7 @@ import PyTango
 from taurus.test.base import insertTest
 from sardana.pool.pooldefs import SynchDomain
 from sardana.pool.poolcontrollers.test import TriggerGateControllerTestCase
-from IcePAPPositionTriggerGateController import\
+from sardana_icepap.ctrl.IcePAPPositionTriggerGateController import\
                                             IcePAPPositionTriggerGateController
 
 configuration = [dict(delay={SynchDomain.Position: 0},

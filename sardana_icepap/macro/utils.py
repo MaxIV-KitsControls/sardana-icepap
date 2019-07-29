@@ -6,12 +6,12 @@ from PyTango import DeviceProxy
 import pyIcePAP
 import time
 from sardana.macroserver.macro import *
-from macro_utils.icepap import create_motor_info_dict, home
 
 # globals
 ENV_FROM = '_IcepapEmailAuthor'
 ENV_TO = '_IcepapEmailRecipients'
-SUBJECT = 'Icepap: %s was reset by a Sardana macro' 
+SUBJECT = 'Icepap: %s was reset by a Sardana macro'
+
 
 # util functions
 def isIcepapMotor(macro, motor):
@@ -21,6 +21,7 @@ def isIcepapMotor(macro, motor):
     ctrl_name = motor.controller
     controller_obj = controllers[ctrl_name]
     return isIcepapController(macro, controller_obj)
+
 
 def isIcepapController(macro, controller):
     '''Checks if pool controller is of type IcepapController'''
@@ -36,13 +37,14 @@ def isIcepapController(macro, controller):
         return False
     return True
 
-def fromAxisToCrateNr(axis_nr):
 
+def fromAxisToCrateNr(axis_nr):
     '''Translates axis number to crate number'''
 
-    #TODO: add validation for wrong axis numbers
+    # TODO: add validation for wrong axis numbers
     crate_nr = axis_nr / 10
     return crate_nr
+
 
 def sendMail(efrom, eto, subject, message):
     '''sends email using smtp'''
@@ -90,12 +92,13 @@ def getResetNotificationAuthorAndRecipients(macro):
     return author, recipients
 
 
-#macros
+# macros
 class ipap_get_closed_loop(Macro):
     """Returns current closed loop configuration value for a given motor"""
 
     param_def = [
-       ["motor",  Type.Motor,  None, "motor to request (must be and IcePAP motor)"],
+        ["motor", Type.Motor, None,
+         "motor to request (must be and IcePAP motor)"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -104,7 +107,7 @@ class ipap_get_closed_loop(Macro):
         """Check that parameters for the macro are correct"""
         motorOk = False
 
-        #check that motor controller is of type icepap
+        # check that motor controller is of type icepap
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
         ctrls_list = pool.read_attribute("ControllerList").value
@@ -133,8 +136,10 @@ class ipap_set_closed_loop(Macro):
     """Enables/Disables closed loop in a given motor"""
 
     param_def = [
-       ["motor",  Type.Motor,  None, "motor to configure (must be and IcePAP motor)"],
-       ["ON/OFF", Type.String, None, "ON to enable / OFF to disable closed loop"]
+        ["motor", Type.Motor, None,
+         "motor to configure (must be and IcePAP motor)"],
+        ["ON/OFF", Type.String, None,
+         "ON to enable / OFF to disable closed loop"]
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -144,7 +149,7 @@ class ipap_set_closed_loop(Macro):
         """Check that parameters for the macro are correct"""
         motorOk = False
 
-        #check that motor controller is of type icepap
+        # check that motor controller is of type icepap
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
         ctrls_list = pool.read_attribute("ControllerList").value
@@ -157,7 +162,7 @@ class ipap_set_closed_loop(Macro):
         if not motorOk:
             raise Exception("Motor %s is not an IcePAP motor" % str(motor))
 
-        #check that "action" is valid
+        # check that "action" is valid
         if action.upper() in self.actions:
             pass
         else:
@@ -171,14 +176,17 @@ class ipap_set_closed_loop(Macro):
             closed_loop = True
         else:
             closed_loop = False
-        #read back closed loop status to check it's the one we have just set
-        motor.write_attribute("ClosedLoop",closed_loop)
+        # read back closed loop status to check it's the one we have just set
+        motor.write_attribute("ClosedLoop", closed_loop)
         closed_loop_rb = motor.read_attribute("ClosedLoop").value
         if closed_loop == closed_loop_rb:
-            self.output("Closed loop %s correctly set in motor %s" % (action,str(motor)))
+            self.output("Closed loop %s correctly set in motor %s" % (
+            action, str(motor)))
             return True
         else:
-            self.output("WARNING!: read back from the controller (%s) didn't match the requested parameter (%s)" %  (str(closed_loop_rb),str(closed_loop)))
+            self.output(
+                "WARNING!: read back from the controller (%s) didn't match the requested parameter (%s)" % (
+                str(closed_loop_rb), str(closed_loop)))
             return False
 
 
@@ -186,7 +194,8 @@ class ipap_get_steps_per_turn(Macro):
     """Returns current steps per turn value for a given motor"""
 
     param_def = [
-       ["motor",  Type.Motor,  None, "motor to request (must be and IcePAP motor)"],
+        ["motor", Type.Motor, None,
+         "motor to request (must be and IcePAP motor)"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -197,7 +206,7 @@ class ipap_get_steps_per_turn(Macro):
         """Check that parameters for the macro are correct"""
         motorOk = False
 
-        #check that motor controller is of type icepap
+        # check that motor controller is of type icepap
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
         ctrls_list = pool.read_attribute("ControllerList").value
@@ -208,20 +217,21 @@ class ipap_get_steps_per_turn(Macro):
                     motorOk = True
                 break
         if not motorOk:
-            raise Exception("Motor %s doesn't support closed loop" % str(motor))
+            raise Exception(
+                "Motor %s doesn't support closed loop" % str(motor))
 
     def run(self, motor):
         """Run macro"""
-        #get axis number, controller name and pool
+        # get axis number, controller name and pool
         axis = motor.getAxis()
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
 
-        #write command to icepap
+        # write command to icepap
         cmd = self.get_command % axis
-        result = pool.SendToController([controller,cmd])
+        result = pool.SendToController([controller, cmd])
 
-        #read result and return value
+        # read result and return value
         steps = result.split()[2]
         self.output("% s steps per turn in motor %s" % (steps, str(motor)))
         return int(steps)
@@ -231,12 +241,13 @@ class ipap_set_steps_per_turn(Macro):
     """Set steps per turn value for a given motor"""
 
     param_def = [
-       ["motor",  Type.Motor,  None, "motor to configure (must be and IcePAP motor)"],
-       ["steps", Type.Integer, None, "steps per turn value"]
+        ["motor", Type.Motor, None,
+         "motor to configure (must be and IcePAP motor)"],
+        ["steps", Type.Integer, None, "steps per turn value"]
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
-    config_command = "%d:CONFIG" 
+    config_command = "%d:CONFIG"
     set_command = "%d:CFG ANSTEP %d"
     get_command = "%d:?CFG ANSTEP"
     sign_command = "%d:CONFIG %s"
@@ -245,7 +256,7 @@ class ipap_set_steps_per_turn(Macro):
         """Check that parameters for the macro are correct"""
         motorOk = False
 
-        #check that motor controller is of type iceepap
+        # check that motor controller is of type iceepap
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
         ctrls_list = pool.read_attribute("ControllerList").value
@@ -260,83 +271,39 @@ class ipap_set_steps_per_turn(Macro):
 
     def run(self, motor, steps):
         """Run macro"""
-        #get axis number, controller name and pool
+        # get axis number, controller name and pool
         axis = motor.getAxis()
         controller = motor.getControllerName()
         pool = motor.getPoolObj()
 
-        #set controller in config mode
+        # set controller in config mode
         cmd = self.config_command % axis
-        result = pool.SendToController([controller,cmd])
+        result = pool.SendToController([controller, cmd])
 
-        #set the requested steps per turn
-        cmd = self.set_command % (axis,steps)
-        result = pool.SendToController([controller,cmd])
+        # set the requested steps per turn
+        cmd = self.set_command % (axis, steps)
+        result = pool.SendToController([controller, cmd])
 
-        #sign the change in icepap controller
-        cmd = self.sign_command % (axis,"Steps per turn changed on user request from macro %s on %s" % (str(self.__class__.__name__),str(time.ctime())))
-        result = pool.SendToController([controller,cmd])
+        # sign the change in icepap controller
+        cmd = self.sign_command % (axis,
+                                   "Steps per turn changed on user request from macro %s on %s" % (
+                                   str(self.__class__.__name__),
+                                   str(time.ctime())))
+        result = pool.SendToController([controller, cmd])
 
-        #read back steps per turn to confirm command worked OK
+        # read back steps per turn to confirm command worked OK
         cmd = self.get_command % axis
-        result = pool.SendToController([controller,cmd])
+        result = pool.SendToController([controller, cmd])
         steps_rb = int(result.split()[2])
         if steps == steps_rb:
-            self.output("Steps per turn %d correctly set in motor %s" % (steps,str(motor)))
+            self.output("Steps per turn %d correctly set in motor %s" % (
+            steps, str(motor)))
             return True
         else:
-            self.output("WARNING!: read back from the controller (%s) didn't match the requested parameter (%d)" %  (str(result),steps))
+            self.output(
+                "WARNING!: read back from the controller (%s) didn't match the requested parameter (%d)" % (
+                str(result), steps))
             return False
-
-
-class ipap_homing(Macro):
-    """This macro will execute an icepap homing routine for all motors passed as arguments in directions passes as arguments.
-       Directions are considered in pool sense. 
-       Icepap homing routine is parametrizable in group and strict sense, so it has 4 possible configurations. 
-       Macro result depends on the configuration which you have chosen:
-       - HOME (macro result is True if all the motors finds home, otherwise result is False) 
-       - HOME GROUP (macro result is True if all the motors finds home, otherwise result is False)
-       - HOME STRICT (macro result is True when first motor finds home, otherwise result is False)
-       - HOME GROUP STRICT (macro result is True when first motor finds home, otherwise result is False) 
-    """
-
-    param_def = [
-        ["group",  Type.Boolean, False, "If performed group homing."],         
-        ["strict",  Type.Boolean, False, "If performed strict homing."],         
-        ['motor_direction_list',
-        ParamRepeat(['motor', Type.Motor, None, 'Motor to be homed.'],
-                    ['direction', Type.Integer, None, 'Direction of homing (in pool sense) <-1|1>']),
-        None, 'List of motors and homing directions.']
-    ]
-
-    result_def = [
-        ['homed',  Type.Boolean, None, 'Motors homed state']
-    ]       
-       
-    def prepare(self, *args, **opts):
-        self.group = args[0]
-        self.strict = args[1]
-        self.motors = []
-
-        motors_directions = args[2]
-        self.motorsInfoList = [create_motor_info_dict(m,d) for m,d in motors_directions]
-
-        #getting motion object for automatic aborting
-        motorNames = [motorInfoDict['motor'].name for motorInfoDict in self.motorsInfoList] 
-        self.getMotion(motorNames)
-        
-        
-    def run(self, *args, **opts):
-        return home(self, self.motorsInfoList, self.group, self.strict)
-
-        # if self.group and self.strict:
-        #     return home_group_strict(self, self.motorsInfoList)
-        # elif self.group:
-        #     return home_group(self, self.motorsInfoList)
-        # elif self.strict:
-        #     return home_strict(self, self.motorsInfoList)
-        # else:
-        #     return home(self, self.motorsInfoList)
 
 
 @macro([["motor", Type.Motor, None, "motor to jog"],
@@ -350,8 +317,8 @@ def ipap_jog(self, motor, velocity):
 
 @macro([["motor", Type.Motor, None, "motor to reset"]])
 def ipap_reset_motor(self, motor):
-    '''Resets a crate where the Icepap motor belongs to. This will send an 
-       autmatic notification to recipients declared 
+    '''Resets a crate where the Icepap motor belongs to. This will send an
+       autmatic notification to recipients declared
        in '_IcepapEmailRecipients' variable'''
 
     motor_name = motor.getName()
@@ -374,20 +341,20 @@ def ipap_reset_motor(self, motor):
 
     waitSeconds(self, 5)
     self.debug("RESET finished")
-    #_initCrate(self, ctrl_obj, crate_nr)
+    # _initCrate(self, ctrl_obj, crate_nr)
 
-    try: 
+    try:
         efrom, eto = getResetNotificationAuthorAndRecipients(self)
     except Exception, e:
         self.warning(e)
         return
-    
+
     ms = self.getMacroServer()
     ms_name = ms.get_name()
-    efrom = '%s <%s>' % (ms_name,efrom)
+    efrom = '%s <%s>' % (ms_name, efrom)
     subject = SUBJECT % icepap_host
-    message =  'Summary:\n'
-    message +=  'Macro: ipap_reset_motor(%s)\n' % motor_name
+    message = 'Summary:\n'
+    message += 'Macro: ipap_reset_motor(%s)\n' % motor_name
     message += 'Pool name: %s\n' % pool_obj.name()
     message += 'Controller name: %s\n' % ctrl_name
     message += 'Motor name: %s\n' % motor_name
@@ -397,8 +364,10 @@ def ipap_reset_motor(self, motor):
     sendMail(efrom, eto, subject, message)
     self.info('Email notification was send to: %s' % eto)
     # waiting 3 seconds so the Icepap recovers after the reset
-    # it is a dummy wait, probably it could poll the Icepap 
+    # it is a dummy wait, probably it could poll the Icepap
     # and break if the reset is already finished
+
+
 #    waitSeconds(self, 3)
 
 
@@ -410,19 +379,19 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
 
     if not isIcepapController(self, icepap_ctrl):
         self.error('Controller: %s is not an Icepap controller' % \
-                                              icepap_ctrl.getName())
+                   icepap_ctrl.getName())
         return
     ctrl_obj = icepap_ctrl.getObj()
     pool_obj = ctrl_obj.getPoolObj()
     icepap_host = ctrl_obj.get_property('host')['host'][0]
-    ice_dev = pyIcePAP.EthIcePAP(icepap_host,5000)
+    ice_dev = pyIcePAP.EthIcePAP(icepap_host, 5000)
     while not ice_dev.connected:
         time.sleep(0.5)
 
     crate_list = ice_dev.getRacksAlive()
-    if crate_nr >= 0 :
+    if crate_nr >= 0:
         msg = 'Crate nr: %d of the Icepap host: ' % crate_nr + \
-              '%s is being reset.' % icepap_host 
+              '%s is being reset.' % icepap_host
         if crate_nr in crate_list:
             cmd = "RESET %d" % crate_nr
         else:
@@ -431,22 +400,23 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     else:
         msg = 'Icepap host: %s is being reset.' % icepap_host
         cmd = "RESET"
-    
+
     driver_list = ice_dev.getDriversAlive()
-    if crate_nr >=0:
+    if crate_nr >= 0:
         nr = crate_nr
-        driver_list= [i for i in driver_list if i>(nr*10) and i<=(nr*10+8)]
-    
+        driver_list = [i for i in driver_list if
+                       i > (nr * 10) and i <= (nr * 10 + 8)]
+
     status_message = ''
     for driver in driver_list:
         status_message += 'Axis: %d\nStatus: %s\n' % \
-                                        (driver,ice_dev.getVStatus(driver))
-    
-    pool_obj.SendToController([icepap_ctrl.getName(),cmd])
+                          (driver, ice_dev.getVStatus(driver))
+
+    pool_obj.SendToController([icepap_ctrl.getName(), cmd])
     msg += ' It will take aprox. 3 seconds...'
     self.info(msg)
 
-    try: 
+    try:
         efrom, eto = getResetNotificationAuthorAndRecipients(self)
     except Exception, e:
         self.warning(e)
@@ -454,10 +424,10 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
 
     ms = self.getMacroServer()
     ms_name = ms.get_name()
-    efrom = '%s <%s>' % (ms_name,efrom)
+    efrom = '%s <%s>' % (ms_name, efrom)
     subject = SUBJECT % icepap_host
     ctrl_name = icepap_ctrl.getName()
-    message =  'Macro: %s(%s)\n' % (self.getName(), ctrl_name)
+    message = 'Macro: %s(%s)\n' % (self.getName(), ctrl_name)
     message += 'Pool name: %s\n' % pool_obj.name()
     message += 'Controller name: %s\n' % ctrl_name
     message += 'Icepap host: %s\n' % icepap_host
@@ -467,7 +437,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     sendMail(efrom, eto, subject, message)
     self.info('Email notification was send to: %s' % eto)
     # waiting 3 seconds so the Icepap recovers after the0 reset
-    # it is a dummy wait, probably it could poll the Icepap 
+    # it is a dummy wait, probably it could poll the Icepap
     # and break if the reset is already finished
     waitSeconds(self, 3)
 
@@ -479,11 +449,11 @@ def _initCrate(macro, ctrl_obj, crate_nr):
 
     # Define axes range to re-initialize after reset
     # These are the motors in the same crate than the given motor
-    first = crate_nr*10
+    first = crate_nr * 10
     last = first + 8
     macro.info('Initializing Crate number %s:' % crate_nr)
     macro.info('axes range [%s,%s]' % (first, last))
-    
+
     # Get the alias for ALL motors for the controller
     motor_list = ctrl_obj.elementlist
     macro.debug("Element in controller: %s" % repr(motor_list))
@@ -495,22 +465,22 @@ def _initCrate(macro, ctrl_obj, crate_nr):
         a = int(m.get_property('axis')['axis'][0])
         # Execute init command for certain motors:
         if first <= a <= last:
-            macro.debug('alias: %s' % alias) 
-            macro.debug('device name: %s' % m.name())    
+            macro.debug('alias: %s' % alias)
+            macro.debug('device name: %s' % m.name())
             macro.debug('axis number: %s' % a)
             macro.info("Initializing %s..." % alias)
             try:
                 m.command_inout('Init')
-		# HOTFIX!!! only if offsets are lost 24/12/2016
-		#print 'IMPORTANT: OVERWRITTING centx/centy offsets!'
-		#if alias == 'centx':
-                #    centx_offset = -4.065240223463690
-		#    m['offset'] = centx_offset
-                #    print 'centx offset overwritten: %f' % centx_offset
-		#if alias == 'centy':
-                #    centy_offset = -2.759407821229050
-		#    m['offset'] = centy_offset
-                #    print 'centy offset overwritten: %f' % centy_offset
+            # HOTFIX!!! only if offsets are lost 24/12/2016
+            # print 'IMPORTANT: OVERWRITTING centx/centy offsets!'
+            # if alias == 'centx':
+            #    centx_offset = -4.065240223463690
+            #    m['offset'] = centx_offset
+            #    print 'centx offset overwritten: %f' % centx_offset
+            # if alias == 'centy':
+            #    centy_offset = -2.759407821229050
+            #    m['offset'] = centy_offset
+            #    print 'centy offset overwritten: %f' % centy_offset
 
             except Exception:
                 macro.error('axis %s cannot be initialized' % alias)
