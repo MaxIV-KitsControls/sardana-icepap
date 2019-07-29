@@ -3,7 +3,7 @@
     server Tango device server as part of the Sardana project.
 """
 from PyTango import DeviceProxy
-import pyIcePAP
+import icepap
 import time
 from sardana.macroserver.macro import *
 
@@ -92,14 +92,6 @@ def getResetNotificationAuthorAndRecipients(macro):
     return author, recipients
 
 
-# macros
-
-
-
-
-
-
-
 @macro([["motor", Type.Motor, None, "motor to jog"],
         ["velocity", Type.Integer, None, "velocity"]])
 def ipap_jog(self, motor, velocity):
@@ -160,8 +152,6 @@ def ipap_reset_motor(self, motor):
     # waiting 3 seconds so the Icepap recovers after the reset
     # it is a dummy wait, probably it could poll the Icepap
     # and break if the reset is already finished
-
-
 #    waitSeconds(self, 3)
 
 
@@ -178,11 +168,18 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     ctrl_obj = icepap_ctrl.getObj()
     pool_obj = ctrl_obj.getPoolObj()
     icepap_host = ctrl_obj.get_property('host')['host'][0]
-    ice_dev = pyIcePAP.EthIcePAP(icepap_host, 5000)
-    while not ice_dev.connected:
+    ipap = icepap.IcePAPController(icepap_host)
+    while not ipap.connected:
         time.sleep(0.5)
 
-    crate_list = ice_dev.getRacksAlive()
+    # TODO: Implement equivalent method on icepap API 3
+    # crate_list = ice_dev.getRacksAlive()
+    rack_mask = int(ipap.send_ctrl('?SYSSTAT')[0], 16)
+    create_list = []
+    for rack in range(16):
+        if rack_mask & (1 << rack) != 0:
+            create_list.append(rack)
+
     if crate_nr >= 0:
         msg = 'Crate nr: %d of the Icepap host: ' % crate_nr + \
               '%s is being reset.' % icepap_host
@@ -195,7 +192,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
         msg = 'Icepap host: %s is being reset.' % icepap_host
         cmd = "RESET"
 
-    driver_list = ice_dev.getDriversAlive()
+    driver_list = ipap.find_axes()
     if crate_nr >= 0:
         nr = crate_nr
         driver_list = [i for i in driver_list if
@@ -204,7 +201,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     status_message = ''
     for driver in driver_list:
         status_message += 'Axis: %d\nStatus: %s\n' % \
-                          (driver, ice_dev.getVStatus(driver))
+                          (driver, ipap.getVStatus(driver))
 
     pool_obj.SendToController([icepap_ctrl.getName(), cmd])
     msg += ' It will take aprox. 3 seconds...'
