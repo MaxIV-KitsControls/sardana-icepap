@@ -157,7 +157,7 @@ class IcepapController(MotorController):
         @param properties of the controller
         """
         MotorController.__init__(self, inst, props, *args, **kwargs)
-        self.ipap = IcePAPController(self.Host, self.Port, self.Timeout)
+        self.ipap = IcePAPController(self.Host, self.Port, self.Timeout, auto_axes=True)
         self.attributes = {}
         self.state_multiple = []
         self.position_multiple = []
