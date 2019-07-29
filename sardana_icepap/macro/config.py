@@ -1,5 +1,4 @@
 from PyTango import DeviceProxy
-import pyIcePAP
 import time
 from sardana.macroserver.macro import Macro, Type
 

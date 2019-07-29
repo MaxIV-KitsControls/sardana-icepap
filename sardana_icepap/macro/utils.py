@@ -174,7 +174,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
 
     # TODO: Implement equivalent method on icepap API 3
     # crate_list = ice_dev.getRacksAlive()
-    rack_mask = int(ipap.send_ctrl('?SYSSTAT')[0], 16)
+    rack_mask = int(ipap.send_cmd('?SYSSTAT')[0], 16)
     create_list = []
     for rack in range(16):
         if rack_mask & (1 << rack) != 0:
@@ -201,7 +201,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     status_message = ''
     for driver in driver_list:
         status_message += 'Axis: %d\nStatus: %s\n' % \
-                          (driver, ipap.getVStatus(driver))
+                          (driver, ipap[driver].vstatus)
 
     pool_obj.SendToController([icepap_ctrl.getName(), cmd])
     msg += ' It will take aprox. 3 seconds...'
