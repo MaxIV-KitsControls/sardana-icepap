@@ -83,7 +83,7 @@ def getResetNotificationAuthorAndRecipients(macro):
         if not (isinstance(author, str) and len(author)):
             msg = '"%s" variable is not a string or is empty.' % ENV_FROM
             raise Exception(msg)
-    except Exception, e:
+    except Exception as e:
         macro.debug(e)
         msg = 'Icepap resets should be executed with caution. ' + \
               'It is recommended to notify the Icepap experts about the ' + \
@@ -345,7 +345,7 @@ def ipap_reset_motor(self, motor):
 
     try:
         efrom, eto = getResetNotificationAuthorAndRecipients(self)
-    except Exception, e:
+    except Exception as e:
         self.warning(e)
         return
 
@@ -418,7 +418,7 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
 
     try:
         efrom, eto = getResetNotificationAuthorAndRecipients(self)
-    except Exception, e:
+    except Exception as e:
         self.warning(e)
         return
 

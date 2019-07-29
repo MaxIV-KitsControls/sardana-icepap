@@ -65,7 +65,8 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         self._log.debug('IcePAPPositionTriggerCtr init....')
         self.triggers = {}
         self.motor_names = self.Motors.split(',')
-        self.info_channels = map(str.split, self.Info_channels.split(','))
+        self.info_channels = list(map(str.split,
+                                      self.Info_channels.split(',')))
 
     def AddDevice(self, axis):
         """

@@ -110,7 +110,7 @@ class IcePAPTriggerController(TriggerGateController):
         self._time_mode = False
         self._start_trigger_only = False
         self._use_master_out = self.UseMasterOut
-        self._axis_info_list = map(str.strip, self.AxisInfos.split(','))
+        self._axis_info_list = list(map(str.strip, self.AxisInfos.split(',')))
 
         # Calculate the number of retries according to the timeout and the
         # default Tango timeout (3s)
