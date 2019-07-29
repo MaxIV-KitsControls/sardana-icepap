@@ -101,7 +101,9 @@ class ipap_set_closed_loop(Macro):
             return False
 
 
-# TODO: Check the use case
+# ---------------------------------------------------------------
+# TODO: Check the use case: Does not work in firmware 3.17 
+
 class ipap_get_steps_per_turn(Macro):
     """Returns current steps per turn value for a given motor"""
 
@@ -144,6 +146,7 @@ class ipap_get_steps_per_turn(Macro):
         result = pool.SendToController([controller, cmd])
 
         # read result and return value
+        self.info(result)
         steps = result.split()[2]
         self.output("% s steps per turn in motor %s" % (steps, str(motor)))
         return int(steps)
@@ -217,3 +220,5 @@ class ipap_set_steps_per_turn(Macro):
                 "didn't match the requested parameter "
                 "(%d)" % (str(result), steps))
             return False
+
+# ---------------------------------------------------------------
