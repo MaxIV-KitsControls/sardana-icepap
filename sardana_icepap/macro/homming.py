@@ -1,6 +1,6 @@
 import time
 import PyTango
-from sardana.macroserver.macro import Table, Macro
+from sardana.macroserver.macro import Table, Macro, Type
 
 TIMEOUT_LIM = 1
 
