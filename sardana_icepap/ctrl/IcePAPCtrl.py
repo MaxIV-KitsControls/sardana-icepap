@@ -23,12 +23,12 @@
 ##############################################################################
 
 # NOTE!!!
-# This controller is based on pyIcePAP 2.0.0
+# This controller is based on icepap API 3
 # https://github.com/ALBA-Synchrotron/pyIcePAP
 
 import time
 import numpy
-from pyIcePAP import EthIcePAPController
+from icepap import IcePAPController
 from PyTango import AttributeProxy
 from sardana import State, DataAccess
 from sardana.pool.controller import MotorController, Type, Access, \
@@ -157,7 +157,7 @@ class IcepapController(MotorController):
         @param properties of the controller
         """
         MotorController.__init__(self, inst, props, *args, **kwargs)
-        self.ipap = EthIcePAPController(self.Host, self.Port, self.Timeout)
+        self.ipap = IcePAPController(self.Host, self.Port, self.Timeout)
         self.attributes = {}
         self.state_multiple = []
         self.position_multiple = []
@@ -168,7 +168,7 @@ class IcepapController(MotorController):
 
         # Set IcePAP library logging level
         import logging
-        logger = logging.getLogger('pyIcePAP')
+        logger = logging.getLogger('icepap')
         logger.setLevel(self.IcepapLogLevel)
         self._log.debug('Icepap logging level set to %s' % self.IcepapLogLevel)
 

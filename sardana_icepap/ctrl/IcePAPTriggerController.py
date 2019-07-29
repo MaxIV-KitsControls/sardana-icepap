@@ -27,7 +27,7 @@ from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController, Access, Memorize, \
     Memorized, Type, Description, DataAccess, DefaultValue
 import taurus
-import pyIcePAP
+import icepap
 
 # [WIP] This controller need the Sardana PR 671 !!!!!
 
@@ -122,8 +122,8 @@ class IcePAPTriggerController(TriggerGateController):
         properties = self._ipap_ctrl.get_property(['host', 'port'])
         host = properties['host'][0]
         port = int(properties['port'][0])
-        self._ipap = pyIcePAP.EthIcePAPController(host=host, port=port,
-                                                  timeout=self.Timeout)
+        self._ipap = icepap.IcePAPController(host=host, port=port,
+                                             timeout=self.Timeout)
         self._last_motor_name = None
         self._motor_axis = None
         self._motor_spu = 1
@@ -286,7 +286,7 @@ class IcePAPTriggerController(TriggerGateController):
         # ecamdat.write([initial, final, nr_points], with_read=False)
 
         # The ecamdattable attribute is protected against non increasing
-        # list at the pyIcePAP library level. HOWEVER, is not protected
+        # list at the icepap library level. HOWEVER, is not protected
         # agains list with repeated elements
 
         if self._start_trigger_only:

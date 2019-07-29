@@ -186,7 +186,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         # ecamdat.write([initial, final, nr_points], with_read=False)
 
         # The ecamdattable attribute is protected against non increasing list
-        # at the pyIcePAP library level. HOWEVER, is not protected agains list
+        # at the icepap library level. HOWEVER, is not protected agains list
         #  with repeated elements
         trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
         self._log.debug('trigger table %s'%str(trigger_positions_tables))
