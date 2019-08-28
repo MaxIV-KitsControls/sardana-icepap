@@ -175,10 +175,10 @@ def ipap_reset(self, icepap_ctrl, crate_nr):
     # TODO: Implement equivalent method on icepap API 3
     # crate_list = ice_dev.getRacksAlive()
     rack_mask = int(ipap.send_cmd('?SYSSTAT')[0], 16)
-    create_list = []
+    crate_list = []
     for rack in range(16):
         if rack_mask & (1 << rack) != 0:
-            create_list.append(rack)
+            crate_list.append(rack)
 
     if crate_nr >= 0:
         msg = 'Crate nr: %d of the Icepap host: ' % crate_nr + \
