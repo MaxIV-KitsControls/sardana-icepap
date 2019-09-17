@@ -688,6 +688,8 @@ class IcepapController(MotorController):
     def SetAxisExtraPar(self, axis, parameter, value):
         if parameter.lower().startswith('info'):
             value = value.split()
+            if len(value) == 1:
+                value.append('NORMAL')
 
         attr = self.param2attr[parameter.lower()]
         self.ipap[axis].__setattr__(attr, value)
