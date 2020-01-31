@@ -179,6 +179,8 @@ class IcepapController(MotorController):
 
         self.attributes[axis] = {}
         self.attributes[axis]['step_per_unit'] = 1
+        self.attributes[axis]['step_per_unit_set'] = False
+        self.attributes[axis]['velocity'] = None
         self.attributes[axis]['status_value'] = None
         self.attributes[axis]['last_state_value'] = None
         self.attributes[axis]['position_value'] = None
@@ -472,6 +474,15 @@ class IcepapController(MotorController):
         step_pos = position * self.attributes[axis]['step_per_unit']
         self.ipap[axis].pos = step_pos
 
+    def _SetVelocity(self, axis, velocity_steps):
+        # setting the velocity changes the icepap acceleration time
+        # for protection. We compensate this by restoring the
+        # acceleration time back to the original value after
+        # setting the new velocity
+        accel_time = self.ipap[axis].acctime
+        self.ipap[axis].velocity = velocity_steps
+        self.ipap[axis].acctime = accel_time
+
     def SetPar(self, axis, name, value):
         """ Set the standard pool motor parameters.
         @param axis to set the parameter
@@ -481,16 +492,26 @@ class IcepapController(MotorController):
 
         par_name = name.lower()
         if par_name == 'step_per_unit':
-            self.attributes[axis]['step_per_unit'] = float(value)
+            self.attributes[axis]['step_per_unit_set'] = True
+            spu = float(value)
+            self.attributes[axis]['step_per_unit'] = spu
+            velocity = self.attributes[axis]['velocity']
+            if velocity is not None:
+                self._SetVelocity(axis, velocity * spu)
         elif par_name == 'velocity':
-            value_steps = value * self.attributes[axis]['step_per_unit']
-            # setting the velocity changes the icepap acceleration time
-            # for protection. We compensate this by restoring the
-            # acceleration time back to the original value after
-            # setting the new velocity
-            accel_time = self.ipap[axis].acctime
-            self.ipap[axis].velocity = value_steps
-            self.ipap[axis].acctime = accel_time
+            self.attributes[axis]['velocity'] = value
+            spu = self.attributes[axis]['step_per_unit']
+            if not self.attributes[axis]['step_per_unit_set']:
+                # if step_per_unit has not been set yet we still try to
+                # set velocity because the motor may simply use the default 
+                # step per unit of 1. If it fails we ignore the error. The
+                # velocity will be set when the step per unit is configured
+                try:
+                    self._SetVelocity(axis, value * spu)
+                except:
+                    pass
+            else:
+                self._SetVelocity(axis, value * spu)
         elif par_name == 'base_rate':
             pass
         elif par_name == 'acceleration':
