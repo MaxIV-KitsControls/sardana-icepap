@@ -1,9 +1,14 @@
 from setuptools import setup, find_packages
 
+# The version is updated automatically with bumpversion
+# Do not update manually
+__version = "0.2.1"
+
+
 setup(
-    name="icepap_ctrl",
-    version="1.0.0",
+    name="sardana_icepap",
+    version=__version,
     packages=find_packages(),
-    install_requires=["setuptools"],
+    install_requires=["sardana", "icepap", "setuptools"],
     description="IcePAP Sardana controller."
 )
