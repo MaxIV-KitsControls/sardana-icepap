@@ -1,3 +1,3 @@
 # The version is updated automatically with bumpversion
 # Do not update manually
-__version__ = "0.2.1"
+__version__ = "1.0.0"
