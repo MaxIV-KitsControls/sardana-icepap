@@ -483,7 +483,7 @@ class IcepapController(MotorController):
         self.ipap[axis].velocity = velocity_steps
         self.ipap[axis].acctime = accel_time
 
-    def SetPar(self, axis, name, value):
+    def SetAxisPar(self, axis, name, value):
         """ Set the standard pool motor parameters.
         @param axis to set the parameter
         @param name of the parameter
@@ -521,7 +521,7 @@ class IcepapController(MotorController):
         else:
             MotorController.SetPar(self, axis, name, value)
 
-    def GetPar(self, axis, name):
+    def GetAxisPar(self, axis, name):
         """ Get the standard pool motor parameters.
         @param axis to get the parameter
         @param name of the parameter to get the value
@@ -538,7 +538,7 @@ class IcepapController(MotorController):
         elif par_name in ['acceleration', 'deceleration']:
             value = self.ipap[axis].acctime
         else:
-            value = MotorController.GetPar(self, axis, name)
+            value = MotorController.GetAxisPar(self, axis, name)
         return value
 
     # -------------------------------------------------------------------------
