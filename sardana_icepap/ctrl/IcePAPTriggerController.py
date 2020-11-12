@@ -194,7 +194,7 @@ class IcePAPTriggerController(TriggerGateController):
 
         return state, status
 
-    def PreStartOne(self, axis):
+    def PreStartOne(self, axis, value):
         """PreStart the specified trigger"""
         # self._log.debug('PreStartOne(%d): entering...' % axis)
         if self._time_mode:
@@ -203,7 +203,7 @@ class IcePAPTriggerController(TriggerGateController):
             self._set_out(out=ECAM)
         return True
 
-    def StartOne(self, axis):
+    def StartOne(self, axis, value):
         """Overwrite the StartOne method"""
         if not self._time_mode:
             return

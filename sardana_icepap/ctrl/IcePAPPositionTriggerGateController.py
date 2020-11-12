@@ -29,6 +29,7 @@ from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController
 from sardana.pool.controller import Type, Access, Description, DefaultValue
 
+
 class IcePAPPositionTriggerGateController(TriggerGateController):
     """Basic IcePAPPositionTriggerGateController.
     """
@@ -101,7 +102,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         motor = tg['motor']
         return motor.state(), motor.status()
 
-    def PreStartOne(self, axis):
+    def PreStartOne(self, axis, value):
         """PreStart the specified trigger
         """
         self._log.debug('PreStartOne(%d): entering...' % axis)
@@ -132,7 +133,7 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
 
         return True
 
-    def StartOne(self, axis):
+    def StartOne(self, axis, value):
         """Overwrite the StartOne method
         """
         pass
