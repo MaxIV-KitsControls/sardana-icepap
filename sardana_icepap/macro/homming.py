@@ -1,6 +1,6 @@
 import time
 import PyTango
-from sardana.macroserver.macro import Table, Macro, Type, ParamRepeat
+from sardana.macroserver.macro import Table, Macro, Type
 
 TIMEOUT_LIM = 1
 
@@ -207,10 +207,10 @@ class ipap_homing(Macro):
         ["group", Type.Boolean, False, "If performed group homing."],
         ["strict", Type.Boolean, False, "If performed strict homing."],
         ['motor_direction_list',
-         ParamRepeat(['motor', Type.Motor, None, 'Motor to be homed.'],
-                     ['direction', Type.Integer, None,
-                      'Direction of homing (in pool sense) <-1|1>']),
-         None, 'List of motors and homing directions.']
+         [['motor', Type.Motor, None, 'Motor to be homed.'],
+          ['direction', Type.Integer, None,
+           'Direction of homing (in pool sense) <-1|1>'],
+          {'min': 1}], None, 'List of motors and homing directions.']
     ]
 
     result_def = [
