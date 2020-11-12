@@ -123,7 +123,8 @@ class IcePAPTriggerController(TriggerGateController):
         host = properties['host'][0]
         port = int(properties['port'][0])
         self._ipap = icepap.IcePAPController(host=host, port=port,
-                                             timeout=self.Timeout, auto_axes=True)
+                                             timeout=self.Timeout,
+                                             auto_axes=True)
         self._last_motor_name = None
         self._motor_axis = None
         self._motor_spu = 1
