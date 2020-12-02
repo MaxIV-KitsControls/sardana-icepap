@@ -519,7 +519,7 @@ class IcepapController(MotorController):
         elif par_name == 'deceleration':
             pass
         else:
-            MotorController.SetPar(self, axis, name, value)
+            MotorController.SetAxisPar(self, axis, name, value)
 
     def GetAxisPar(self, axis, name):
         """ Get the standard pool motor parameters.
