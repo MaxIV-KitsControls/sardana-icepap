@@ -173,15 +173,15 @@ def home(macro, motorsInfoList, group=False, strict=False):
 
 
 def home_group_strict(macro, motorsInfoList):
-    home(macro, motorsInfoList, group=True, strict=True)
+    return home(macro, motorsInfoList, group=True, strict=True)
 
 
 def home_group(macro, motorsInfoList):
-    home(macro, motorsInfoList, group=True, strict=False)
+    return home(macro, motorsInfoList, group=True, strict=False)
 
 
 def home_strict(macro, motorsInfoList):
-    home(macro, motorsInfoList, group=False, strict=True)
+    return home(macro, motorsInfoList, group=False, strict=True)
 
 
 class ipap_homing(Macro):
