@@ -275,3 +275,22 @@ def _initCrate(macro, ctrl_obj, crate_nr):
 
             except Exception:
                 macro.error('axis %s cannot be initialized' % alias)
+
+@macro([["motor", Type.Motor, None, "motor to esync"]])
+def ipap_esync_motor(self, motor):
+    '''Send ESYNC to an IcePAP motor'''
+
+    motor_name = motor.getName()
+    if not isIcepapMotor(self, motor):
+        self.error('Motor: %s is not an IcePAP motor' % motor_name)
+        return
+    pool_obj = motor.getPoolObj()
+    ctrl_name = motor.getControllerName()
+    axis = motor.getAxis()
+    ctrl_obj = motor.getControllerObj()
+    icepap_host = ctrl_obj.get_property('host')['host'][0]
+    self.info("Motor '%s' is axis %d of controller '%s'", axis, ctrl_name)
+    self.info("IcePAP host: %s", icepap_host)
+    self.info("Sending ESYNC")
+    pool_obj.SendToController([ctrl_name, axis + ":ESYNC"])
+    self.info("ESYNC done")
