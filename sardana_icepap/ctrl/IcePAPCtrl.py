@@ -711,7 +711,11 @@ class IcepapController(MotorController):
             value = value.split()
 
         attr = self.param2attr[parameter.lower()]
-        self.ipap[axis].__setattr__(attr, value)
+        try:
+            self.ipap[axis].__setattr__(attr, value)
+        except Exception as e:
+            self._log.error("%s %s", parameter, str(e))
+
 
     def SendToCtrl(self, cmd):
         """ Send the icepap native commands.
