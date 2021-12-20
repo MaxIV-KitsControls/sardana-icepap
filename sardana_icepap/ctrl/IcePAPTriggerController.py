@@ -124,8 +124,6 @@ class IcePAPTriggerController(TriggerGateController):
         self._last_id = None
         self._motor_axis = None
         self._motor_spu = 1
-        self._motor_offset = 0
-        self._motor_sign = 1
 
     def _set_out(self, out=LOW):
         motor = self._ipap[self._motor_axis]
@@ -152,10 +150,8 @@ class IcePAPTriggerController(TriggerGateController):
         # See more details in sardana#1678
         motor_name = "motor/{}/{}".format(self._ipap_ctrl.alias(), id_)
         motor = taurus.Device(motor_name)
-        self._motor_axis = int(motor.get_property('axis')['axis'][0])
-        attrs = motor.read_attributes(['step_per_unit', 'offset', 'sign'])
-        values = [attr.value for attr in attrs]
-        self._motor_spu, self._motor_offset, self._motor_sign = values
+        self._motor_axis = id_
+        self._motor_spu = motor.read_attribute('step_per_unit').value
 
         if self._use_master_out:
             # remove previous connection and connect the new motor
@@ -257,9 +253,8 @@ class IcePAPTriggerController(TriggerGateController):
         start_user = synch_group[SynchParam.Initial][SynchDomain.Position]
         delta_user = synch_group[SynchParam.Total][SynchDomain.Position]
 
-        start_user -= self._motor_offset
-        start = start_user * self._motor_spu/self._motor_sign
-        delta = delta_user * self._motor_spu/self._motor_sign
+        start = start_user * self._motor_spu
+        delta = delta_user * self._motor_spu
 
         end = start + delta * nr_points
         self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
