@@ -208,26 +208,6 @@ class IcePAPTriggerController(TriggerGateController):
         self._log.debug('AbortOne(%d): entering...' % axis)
         self._set_out(out=LOW)
 
-    def SetAxisPar(self, axis, name, value):
-        idx = axis - 1
-        tg = self.triggers[idx]
-        name = name.lower()
-        pars = ['offset', 'passive_interval', 'repetitions', 'sign',
-                'info_channels']
-        if name in pars:
-            tg[name] = value
-
-    def GetAxisPar(self, axis, name):
-        idx = axis - 1
-        tg = self.triggers[idx]
-        name = name.lower()
-        v = tg.get(name, None)
-        if v is None:
-            msg = ('GetAxisPar(%d). The parameter %s does not exist.'
-                   % (axis, name))
-            self._log.error(msg)
-        return v
-
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
         synch_group = configuration[0]
