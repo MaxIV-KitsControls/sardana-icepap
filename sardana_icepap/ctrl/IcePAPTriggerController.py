@@ -140,14 +140,9 @@ class IcePAPTriggerController(TriggerGateController):
         if id_ == self._last_id:
             return
 
-        # TODO: Implement verification of the motor if it is part of the
-        #  controller.
-
         self._last_id = id_
-        # TODO: wait for design decissions in multiplexor trigger/gate mode: 
-        # - SynchOne values in position domain are in user or dial units?
-        # - trigger/gate will have their own conversion factor?
-        # See more details in sardana#1678
+        # this is a bit hacky, ideally we could define an extra attribute
+        # step_per_unit (would require updating it at the same time as the motor's one)
         motor_name = "motor/{}/{}".format(self._ipap_ctrl.alias(), id_)
         motor = taurus.Device(motor_name)
         self._motor_axis = id_
