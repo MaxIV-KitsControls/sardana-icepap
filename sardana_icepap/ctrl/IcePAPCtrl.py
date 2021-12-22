@@ -258,12 +258,14 @@ class IcepapController(MotorController):
 
         moving_flags = [axis_state.is_moving(), axis_state.is_settling()]
         alarm_flags = [axis_state.is_limit_positive(),
-                       axis_state.is_limit_negative(),
-                       not axis_state.is_poweron()]
+                       axis_state.is_limit_negative()]
 
         if any(moving_flags):
             state = State.Moving
             status_state = 'Moving'
+        elif not axis_state.is_poweron():
+            state = State.Off
+            status_state = 'Off'
         elif any(alarm_flags):
             state = State.Alarm
             status_state = 'Alarm'
