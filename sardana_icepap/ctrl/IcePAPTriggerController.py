@@ -236,6 +236,15 @@ class IcePAPTriggerController(TriggerGateController):
             self._log.error(msg)
         return v
 
+    def PreStartOne(self, axis, value=None):
+        """
+        Prepare axis for generation.
+        """
+        self._log.debug('PreStartOne(%d): entering...' % axis)
+
+        self._log.debug('PreStartOne(%d): leaving...' % axis)
+        return True
+
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
         synch_group = configuration[0]
