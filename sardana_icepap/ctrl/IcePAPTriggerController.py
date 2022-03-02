@@ -245,6 +245,14 @@ class IcePAPTriggerController(TriggerGateController):
         self._log.debug('PreStartOne(%d): leaving...' % axis)
         return True
 
+    def StartOne(self, axis):
+        """
+        Start generation - start the specified channel.
+        """
+        self._log.debug('StartOne(%d): entering...' % axis)
+
+        self._log.debug('StartOne(%d): leaving...' % axis)
+
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
         synch_group = configuration[0]
