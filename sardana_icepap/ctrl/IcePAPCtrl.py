@@ -371,9 +371,13 @@ class IcepapController(MotorController):
 
         spu = self.attributes[axis]["step_per_unit"]
         desired_absolute_steps_pos = pos * spu
-        # CHECK IF THE POSITION SOURCE IS SET, IN THAT CASE POS HAS TO BE
-        # RECALCULATED USING SOURCE + FORMULA
-        if self.attributes[axis]['use_encoder_source']:
+        # CHECK IF:
+        # - MOTOR IS NOT IN CLOSED LOOP 
+        #   (CLOSED LOOP MOVE REQUESTS ARE ALREADY IN POSITION BASED ON ENCODER)
+        # - THE POSITION SOURCE IS SET
+        # IN THAT CASE POS HAS TO BE RECALCULATED USING SOURCE + FORMULA
+        if (not self.GetAxisExtraPar(axis, "ClosedLoop") 
+                and self.attributes[axis]['use_encoder_source']):
             try:
                 current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
