@@ -145,9 +145,6 @@ class IcePAPTriggerController(TriggerGateController):
         if motor_name is None:
             motor_name = self.DefaultMotor
 
-        if motor_name == self._last_motor_name:
-            return
-
         # TODO: Implement verification of the motor if it is part of the
         #  controller.
 
@@ -157,6 +154,9 @@ class IcePAPTriggerController(TriggerGateController):
         attrs = motor.read_attributes(['step_per_unit', 'offset', 'sign'])
         values = [attr.value for attr in attrs]
         self._motor_spu, self._motor_offset, self._motor_sign = values
+
+        if motor_name == self._last_motor_name:
+            return
 
         if self._use_master_out:
             # remove previous connection and connect the new motor
