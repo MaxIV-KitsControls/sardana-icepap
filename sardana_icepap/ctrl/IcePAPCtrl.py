@@ -370,19 +370,42 @@ class IcepapController(MotorController):
                 """
 
         spu = self.attributes[axis]["step_per_unit"]
+        # The desired absolute position depends of the axis configuration on
+        # the icepap. If the axis uses target encoder, the position is based on
+        # the encoder position register, if not the system use the
+        # theoretical position register (Indexer/Motor)
+        # This controller allows to use an external encoder source like a
+        # ADC card or another internal axis register. There are two possible
+        # conditions to calculate the desired absolute position using an
+        # incremental of the Position Indexer Register:
+        #  1) Use external encoder e.g: ADC card (tango attribute)
+        #  2) Use internal encoder register but do not configure it as target
+        #      encoder
+        # In both previous cases the TGTENC configuration is NONE
+        #
+        # The system works fine with the absolute position passed to the
+        # method when:
+        #  1) The flag use_encoder_source is False
+        #  2) The flag use_encoder_source is True but the target encoder is
+        #     configured
+
         desired_absolute_steps_pos = pos * spu
-        # CHECK IF:
-        # - MOTOR IS NOT IN CLOSED LOOP 
-        #   (CLOSED LOOP MOVE REQUESTS ARE ALREADY IN POSITION BASED ON ENCODER)
-        # - THE POSITION SOURCE IS SET
-        # IN THAT CASE POS HAS TO BE RECALCULATED USING SOURCE + FORMULA
-        if (not self.GetAxisExtraPar(axis, "ClosedLoop") 
-                and self.attributes[axis]['use_encoder_source']):
+
+        try:
+            tgtenc_configuration = self.ipap[axis].get_cfg('TGTENC')['TGTENC']
+        except Exception as e:
+            self._log.error('StartOne(%d,%f).\nException:\n%s' %
+                            (axis, pos, str(e)))
+            return False
+
+        if self.attributes[axis]['use_encoder_source'] and \
+            tgtenc_configuration == 'NONE':
+
             try:
                 current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
             except Exception as e:
-                self._log.error('PreStartOne(%d,%f).\nException:\n%s' %
+                self._log.error('StartOne(%d,%f).\nException:\n%s' %
                                 (axis, pos, str(e)))
                 return False
             pos_increment = pos - current_source_pos
