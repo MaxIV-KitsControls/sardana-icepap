@@ -71,6 +71,11 @@ class IcepapController(MotorController):
                         Description: 'Attribute to set the group flag '
                                      'on the movement',
                         DefaultValue: True},
+        'AutoESYNC': {Type: bool, Access: ReadWrite,
+                      Description: 'Attribute to send ESYNC command before '
+                                   'the movement in case of settling error',
+                        DefaultValue: False},
+
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
         'InfoA': {Type: str, Access: ReadWrite},
@@ -191,6 +196,7 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source_tango_attribute'] = \
             FakedAttributeProxy(self, axis, 'attr://PosEncIn')
         self.attributes[axis]['move_in_group'] = True
+        self.attributes[axis]['auto_esync'] = False
 
         if axis in self.ipap:
             self._log.info('Added axis %d.' % axis)
@@ -419,6 +425,18 @@ class IcepapController(MotorController):
             self.move_multiple_not_grouped.append((axis,
                                                    desired_absolute_steps_pos))
 
+        # Sends the automatic ESYNC command to clear the lost steps
+        # accumulated in the previous movement if the closed loop is activated.
+        if self.attributes[axis]['auto_esync'] and \
+                self.ipap[axis].state_outofwin:
+            self._log.warning('StartOne(%d): Motor out of Settle Window. '
+                              'Send ESYNC command', axis)
+            try:
+                self.ipap[axis].esync()
+            except Exception as e:
+                self._log.error('StartOne(%d,%f).\nException:\n%s' %
+                                (axis, pos, str(e)))
+                return False
         return True
 
     def StartAll(self):
@@ -576,6 +594,12 @@ class IcepapController(MotorController):
 
     def setMoveInGroup(self, axis, value):
         self.attributes[axis]['move_in_group'] = value
+
+    def getAutoESYNC(self, axis):
+        return self.attributes[axis]['auto_esync']
+
+    def setAutoESYNC(self, axis, value):
+        self.attributes[axis]['auto_esync'] = value
 
     def getPowerInfo(self, axis):
         # TODO: Analyze if it is included on the lib.
