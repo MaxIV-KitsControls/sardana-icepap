@@ -194,7 +194,7 @@ class IcePAPTriggerController(TriggerGateController):
 
         return state, status
 
-    def PreStartOne(self, axis, value):
+    def PreStartOne(self, axis, value=None):
         """PreStart the specified trigger"""
         # self._log.debug('PreStartOne(%d): entering...' % axis)
         if self._time_mode:
@@ -203,7 +203,7 @@ class IcePAPTriggerController(TriggerGateController):
             self._set_out(out=ECAM)
         return True
 
-    def StartOne(self, axis, value):
+    def StartOne(self, axis):
         """Overwrite the StartOne method"""
         if not self._time_mode:
             return
@@ -235,23 +235,6 @@ class IcePAPTriggerController(TriggerGateController):
                    % (axis, name))
             self._log.error(msg)
         return v
-
-    def PreStartOne(self, axis, value=None):
-        """
-        Prepare axis for generation.
-        """
-        self._log.debug('PreStartOne(%d): entering...' % axis)
-
-        self._log.debug('PreStartOne(%d): leaving...' % axis)
-        return True
-
-    def StartOne(self, axis):
-        """
-        Start generation - start the specified channel.
-        """
-        self._log.debug('StartOne(%d): entering...' % axis)
-
-        self._log.debug('StartOne(%d): leaving...' % axis)
 
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
