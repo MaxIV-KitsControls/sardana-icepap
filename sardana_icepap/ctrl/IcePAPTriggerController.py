@@ -130,6 +130,7 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_spu = 1
         self._motor_offset = 0
         self._motor_sign = 1
+        self._is_tgtenc = False
 
     def _set_out(self, out=LOW):
         motor = self._ipap[self._motor_axis]
@@ -194,7 +195,7 @@ class IcePAPTriggerController(TriggerGateController):
 
         return state, status
 
-    def PreStartOne(self, axis, value):
+    def PreStartOne(self, axis, value=None):
         """PreStart the specified trigger"""
         # self._log.debug('PreStartOne(%d): entering...' % axis)
         if self._time_mode:
@@ -203,13 +204,19 @@ class IcePAPTriggerController(TriggerGateController):
             self._set_out(out=ECAM)
         return True
 
-    def StartOne(self, axis, value):
+    def StartOne(self, axis):
         """Overwrite the StartOne method"""
-        if not self._time_mode:
+
+        if self._time_mode:
+            self._set_out(out=HIGH)
+            time.sleep(0.01)
+            self._set_out(out=LOW)
             return
-        self._set_out(out=HIGH)
-        time.sleep(0.01)
-        self._set_out(out=LOW)
+
+        if self._is_tgtenc:
+            self._log.info('Send ESYNC to motor: %s',
+                           self._ipap[self._motor_axis].name)
+            self._ipap[self._motor_axis].esync()
 
     def AbortOne(self, axis):
         """Start the specified trigger"""
@@ -235,23 +242,6 @@ class IcePAPTriggerController(TriggerGateController):
                    % (axis, name))
             self._log.error(msg)
         return v
-
-    def PreStartOne(self, axis, value=None):
-        """
-        Prepare axis for generation.
-        """
-        self._log.debug('PreStartOne(%d): entering...' % axis)
-
-        self._log.debug('PreStartOne(%d): leaving...' % axis)
-        return True
-
-    def StartOne(self, axis):
-        """
-        Start generation - start the specified channel.
-        """
-        self._log.debug('StartOne(%d): entering...' % axis)
-
-        self._log.debug('StartOne(%d): leaving...' % axis)
 
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
@@ -280,6 +270,15 @@ class IcePAPTriggerController(TriggerGateController):
         # TODO: Uncomment next line when Sardana PR 671 was integrated.
         # master = synch_group[SynchParam.Master][SynchDomain.Position]
         master = self._last_motor_name
+
+        # Check target encoder configuration to send ESYNC on StartOne
+        try:
+            tgtenc_cfg = \
+                self._ipap[self._motor_axis].get_cfg('TGTENC')['TGTENC']
+            self._is_tgtenc = tgtenc_cfg == 'NONE'
+        except Exception as e:
+            self._log.error('SynchOne(%d).\nException:\n%s' % (axis, str(e)))
+            return False
 
         if not self._use_master_out and master != self.DefaultMotor:
             raise RuntimeError('The motor used in the scan is not the '
