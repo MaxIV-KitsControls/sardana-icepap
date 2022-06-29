@@ -376,37 +376,22 @@ class IcepapController(MotorController):
                 """
 
         spu = self.attributes[axis]["step_per_unit"]
-        # The desired absolute position depends of the axis configuration on
-        # the icepap. If the axis uses target encoder, the position is based on
-        # the encoder position register, if not the system use the
-        # theoretical position register (Indexer/Motor)
+        # The desired absolute position based on the theoretical position
+        # register (Axis/Motor). The reading of the position depends of
+        # Axis the the axis configuration. If the closed loop is ON the
+        # theoretical position is near to the encoder.
         # This controller allows to use an external encoder source like a
-        # ADC card or another internal axis register. There are two possible
-        # conditions to calculate the desired absolute position using an
-        # incremental of the Position Indexer Register:
-        #  1) Use external encoder e.g: ADC card (tango attribute)
-        #  2) Use internal encoder register but do not configure it as target
-        #      encoder
-        # In both previous cases the TGTENC configuration is NONE
-        #
-        # The system works fine with the absolute position passed to the
-        # method when:
-        #  1) The flag use_encoder_source is False
-        #  2) The flag use_encoder_source is True but the target encoder is
-        #     configured
+        # ADC card or another internal axis register, and to absolute
+        # movement. There are to cases o calculate the absolute position of
+        # Axis register as relative movement of the external encoder value
+        # there are two cases when use_external_encoder = True:
+        #   1) External encoder is a tango attribute
+        #   2) Internal encoder without closed loop
 
         desired_absolute_steps_pos = pos * spu
 
-        try:
-            tgtenc_configuration = self.ipap[axis].get_cfg('TGTENC')['TGTENC']
-        except Exception as e:
-            self._log.error('StartOne(%d,%f).\nException:\n%s' %
-                            (axis, pos, str(e)))
-            return False
-
         if self.attributes[axis]['use_encoder_source'] and \
-            tgtenc_configuration == 'NONE':
-
+                not self.ipap[axis].pcloop:
             try:
                 current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
