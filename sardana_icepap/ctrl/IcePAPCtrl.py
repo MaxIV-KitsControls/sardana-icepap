@@ -390,6 +390,8 @@ class IcepapController(MotorController):
 
         desired_absolute_steps_pos = pos * spu
 
+        # TODO: Evaluate migration to relative movement instead of absolute
+
         if self.attributes[axis]['use_encoder_source'] and \
                 not self.ipap[axis].pcloop:
             try:
