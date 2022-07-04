@@ -73,8 +73,8 @@ class IcepapController(MotorController):
                         DefaultValue: True},
         'AutoESYNC': {Type: bool, Access: ReadWrite,
                       Description: 'Attribute to send ESYNC command before '
-                                   'the movement in case of settling error',
-                        DefaultValue: False},
+                                   'to do the absolute position calculation.',
+                      DefaultValue: True},
 
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
@@ -196,7 +196,8 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source_tango_attribute'] = \
             FakedAttributeProxy(self, axis, 'attr://PosEncIn')
         self.attributes[axis]['move_in_group'] = True
-        self.attributes[axis]['auto_esync'] = False
+        self.attributes[axis]['auto_esync'] = True
+
 
         if axis in self.ipap:
             self._log.info('Added axis %d.' % axis)
