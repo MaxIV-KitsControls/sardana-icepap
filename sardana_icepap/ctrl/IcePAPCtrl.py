@@ -1,4 +1,4 @@
-# This is a test commit for Axel!
+# This is a test commit for Axel from the GitHub IDE!
 ##############################################################################
 ##
 # This file is part of Sardana
