@@ -1,4 +1,4 @@
-# This is a test commit for Axel from the CLI!
+
 ##############################################################################
 ##
 # This file is part of Sardana
@@ -78,15 +78,29 @@ class IcepapController(MotorController):
         'InfoC': {Type: str, Access: ReadWrite},
         'EnableEncoder_5V': {Type: bool, Access: ReadWrite},
         'ClosedLoop': {Type: bool, Access: ReadWrite},
+        'MeasureVcc': {Type: float, Access: ReadOnly},
+        'MeasureVm': {Type: float, Access: ReadOnly},
+        'MeasureI': {Type: float, Access: ReadOnly},
+        'MeasureIa': {Type: float, Access: ReadOnly},
+        'MeasureIb': {Type: float, Access: ReadOnly},
+        'MeasureIc': {Type: float, Access: ReadOnly},
+        'MeasureR': {Type: float, Access: ReadOnly},
+        'MeasureRa': {Type: float, Access: ReadOnly},
+        'MeasureRb': {Type: float, Access: ReadOnly},
+        'MeasureRc': {Type: float, Access: ReadOnly},
+        'MeasureT': {Type: float, Access: ReadOnly},
+        'MeasureRT': {Type: float, Access: ReadOnly},
         'PosAxis': {Type: float, Access: ReadOnly},
         # TODO: Check because in fw 3.17 does not work
         # 'PosIndexer': {Type: float, Access: ReadOnly},
         'PosShftEnc': {Type: float, Access: ReadOnly},
         'PosTgtEnc': {Type: float, Access: ReadOnly},
+        'PosCtrlEnc': {Type: float, Access: ReadOnly},
         'PosEncIn': {Type: float, Access: ReadOnly},
         'PosInPos': {Type: float, Access: ReadOnly},
         'PosAbsEnc': {Type: float, Access: ReadOnly},
         'PosMotor': {Type: float, Access: ReadOnly},
+        'PosMeasure': {Type: float, Access: ReadOnly},
         'EncAxis': {Type: float, Access: ReadOnly},
         # TODO: Check because in fw 3.17 does not work
         # 'EncIndexer': {Type: float, Access: ReadOnly},
@@ -138,6 +152,13 @@ class IcepapController(MotorController):
         'EcamOut': {Type: str,
                     Description: 'Ecam signal output [OFF, PULSE, LOW, HIGH]',
                     Access: ReadWrite},
+        'DifAxMeasure': {Type: float, Access: ReadOnly},
+        'DifAxMotor': {Type: float, Access: ReadOnly},
+        'DifAxTgtEnc': {Type: float, Access: ReadOnly},
+        'DifAxShftEnc': {Type: float, Access: ReadOnly},
+        'DifAxCtrlEnc': {Type: float, Access: ReadOnly},
+        'VelCurrent': {Type: float, Access: ReadOnly},
+        'VelMotor': {Type: float, Access: ReadOnly},
     }
 
     gender = "Motor"
@@ -640,6 +661,7 @@ class IcepapController(MotorController):
     def setEcamDatTable(self, axis, value):
         self.ipap[axis].set_ecam_table(value)
 
+
     param2attr = {'indexer': 'indexer',
                   'poweron': 'power',
                   'infoa': 'infoa',
@@ -647,9 +669,22 @@ class IcepapController(MotorController):
                   'infoc': 'infoc',
                   'enableencoder_5v': 'auxps',
                   'closedloop': 'pcloop',
+                  'measurevm': 'meas_vm',
+                  'measurevcc': 'meas_vcc',
+                  'measurei': 'meas_i',
+                  'measureia': 'meas_ia',
+                  'measureib': 'meas_ib',
+                  'measureic': 'meas_ic',
+                  'measurer': 'meas_r',
+                  'measurera': 'meas_ra',
+                  'measurerb': 'meas_rb',
+                  'measurerc': 'meas_rc',
+                  'measuret': 'meas_t',
+                  'measurert': 'meas_rt',
                   'posaxis': 'pos',
                   'posshftenc': 'pos_shftenc',
                   'postgtenc': 'pos_tgtenc',
+                  'posctrlenc': 'pos_ctrlenc',
                   'posencin': 'pos_encin',
                   'posinpos': 'pos_inpos',
                   'posabsenc': 'pos_absenc',
@@ -683,7 +718,9 @@ class IcepapController(MotorController):
                   'statusverserr': 'state_vererr',
                   'statuswarning': 'state_warning',
                   'statusdetails': 'vstatus',
+                  'velcurrent': 'velocity_current',
                   }
+
 
     def GetAxisExtraPar(self, axis, parameter):
         """ Get Icepap driver particular parameters.
@@ -700,11 +737,44 @@ class IcepapController(MotorController):
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
                               'compatible.')
 
+        # Dif parameters are not inherent attributes of axis objects
+        # nd so have to be calculated dynamically
+        if parameter.lower() == 'difaxmeasure':
+            return self.GetDifAxMeasure(axis)
+        elif parameter.lower() == 'difaxmotor':
+            return self.ipap[axis].__getattribute__('pos') - self.ipap[axis].__getattribute__('pos_motor')
+        elif parameter.lower() == 'difaxtgtenc':
+            return self.ipap[axis].__getattribute__('pos') - self.ipap[axis].__getattribute__('pos_tgtenc')
+        elif parameter.lower() == 'difaxshftenc':
+            return self.ipap[axis].__getattribute__('pos') - self.ipap[axis].__getattribute__('pos_shftenc')
+        elif parameter.lower() == 'difaxctrlenc':
+            return self.ipap[axis].__getattribute__('pos') - self.ipap[axis].__getattribute__('pos_ctrlenc')
+
+        # posmeasure is not an inherent attribute of axis objects and
+        # have to be measured via the controller.
+        if parameter.lower() == 'posmeasure':
+            return self.ipap.get_fpos(self.ipap[axis].addr, 'MEASURE')[0]
+
+        # velmotor is not an inherent attribute of axis objects and
+        # have to be accessed like this.
+        if parameter.lower() == 'velmotor':
+            return self.ipap[axis].get_velocity(vtype='MOTOR')
+
         attr = self.param2attr[parameter.lower()]
         result = self.ipap[axis].__getattribute__(attr)
         if parameter.lower().startswith('info'):
             result = ' '.join(result)
         return result
+
+    # This function is to get the attribute DifAxMeasure which doesn't make sence
+    # in a context outside icepaposc.
+    # def GetDifAxMeasure(self, axis):
+        # return
+        # pos_measure = self._getter_pos_measure(addr) / \
+        #               self.channels[self.current_channel].measure_resolution
+        # x = self._getter_pos_axis(addr) - pos_measure
+        # x = x * self.poscorr_a
+        # return x
 
     def SetAxisExtraPar(self, axis, parameter, value):
         if parameter.lower().startswith('info'):
