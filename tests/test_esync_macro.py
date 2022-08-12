@@ -34,7 +34,7 @@ def motor(mocker):
 @pytest.fixture
 def esync(mocker):
     mocker.patch("sardana.macroserver.macro.Type")
-    from sardana_icepap.macro import esync
+    from sardana_icepap.macro.esync import ipap_esync
 
     mocker.patch.object(ipap_esync, "door", return_value="macro")
     mocker.patch.object(ipap_esync, "parent_macro", return_value="macro")
