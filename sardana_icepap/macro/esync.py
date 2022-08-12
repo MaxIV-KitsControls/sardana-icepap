@@ -4,31 +4,7 @@ from tango import DevState, DevFailed
 import time
 import json
 from sardana.macroserver.macro import Macro, Type
-
-
-def isIcepapMotor(macro, motor):
-    """
-    Checks if pool motor belongs to the IcepapController
-
-    Args:
-            macro (Macro): running macro
-            motor (Type.Motor): motor device
-    """
-    controllers = macro.getControllers()
-    ctrl_name = motor.controller
-    controller = controllers[ctrl_name]
-    return isIcepapController(controller)
-
-
-def isIcepapController(controller):
-    """
-    Checks if pool controller is of type IcepapController
-
-    Args:
-            controller (Type.Controller): controller device
-    """
-    controller_class_name = controller.getClassName()
-    return controller_class_name == "IcepapController"
+from sardana_icepap.macro.utils import isIcepapMotor
 
 
 class ipap_esync(Macro):
