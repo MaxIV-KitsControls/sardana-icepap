@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from tango import DevState, DevFailed
-import time
-import json
+from time import sleep
+from json import dumps
 from sardana.macroserver.macro import Macro, Type
 from sardana_icepap.macro.utils import isIcepapMotor
 
@@ -33,7 +33,7 @@ class ipap_esync(Macro):
             if self.motor.State() == DevState.ALARM:
                 data = self.collect_data()
                 self.send_esync()
-                time.sleep(2)
+                sleep(2)
                 self.power_on_motor()
                 self.create_log(data)
             else:
@@ -107,7 +107,7 @@ class ipap_esync(Macro):
             "StatusWarning": self._robust_attribute_read("StatusWarning"),
         }
         self.info("Data collected")
-        data = json.dumps(data_obj)
+        data = dumps(data_obj)
         return data
 
     def _send_cmd(self, cmd):
