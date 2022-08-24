@@ -147,8 +147,7 @@ class IcePAPTriggerController(TriggerGateController):
         # TODO: Implement verification of the motor if it is part of the
         #  controller.
 
-        self._last_motor_name = motor_name
-        motor = taurus.Device(self._last_motor_name)
+        motor = taurus.Device(motor_name)
         self._motor_axis = int(motor.get_property('axis')['axis'][0])
         attrs = motor.read_attributes(['step_per_unit', 'offset', 'sign'])
         values = [attr.value for attr in attrs]
@@ -156,6 +155,8 @@ class IcePAPTriggerController(TriggerGateController):
 
         if motor_name == self._last_motor_name:
             return
+
+        self._last_motor_name = motor_name
 
         if self._use_master_out:
             # remove previous connection and connect the new motor
@@ -204,7 +205,6 @@ class IcePAPTriggerController(TriggerGateController):
 
     def StartOne(self, axis):
         """Overwrite the StartOne method"""
-
         if self._time_mode:
             self._set_out(out=HIGH)
             time.sleep(0.01)
