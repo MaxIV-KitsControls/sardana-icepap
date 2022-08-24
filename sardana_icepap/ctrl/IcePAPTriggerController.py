@@ -139,7 +139,6 @@ class IcePAPTriggerController(TriggerGateController):
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
-        print(motor.syncaux)
 
     def _configureMotor(self, motor_name):
         if motor_name is None:
