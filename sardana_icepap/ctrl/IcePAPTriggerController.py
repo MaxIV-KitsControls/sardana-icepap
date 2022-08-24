@@ -52,10 +52,14 @@ class IcePAPTriggerController(TriggerGateController):
 
     # The properties used to connect to the ICEPAP motor controller
     ctrl_properties = {
-        'IcepapController': {
+        'Host': {
             Type: str,
-            Description: 'Icepap Controller name'
+            Description: 'The host name'
         },
+        'Port': {
+            Type: int, Description: 'The port number',
+            DefaultValue: 5000},
+
         'DefaultMotor': {
             Type: str,
             Description: 'motor base'
@@ -118,13 +122,8 @@ class IcePAPTriggerController(TriggerGateController):
         if self._retries_nr == 0:
             self._retries_nr = 1
         self._retries_nr = int(self._retries_nr)
-        self._ipap_ctrl = taurus.Device(self.IcepapController)
-        properties = self._ipap_ctrl.get_property(['host', 'port'])
-        host = properties['host'][0]
-        port = int(properties['port'][0])
-        self._ipap = icepap.IcePAPController(host=host, port=port,
-                                             timeout=self.Timeout,
-                                             auto_axes=True)
+        self._ipap = icepap.IcePAPController(host=self.Host, port=self.Port,
+                                             timeout=self.Timeout)
         self._last_motor_name = None
         self._motor_axis = None
         self._motor_spu = 1
@@ -140,7 +139,6 @@ class IcePAPTriggerController(TriggerGateController):
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
-        print(motor.syncaux)
 
     def _configureMotor(self, motor_name):
         if motor_name is None:
@@ -149,8 +147,7 @@ class IcePAPTriggerController(TriggerGateController):
         # TODO: Implement verification of the motor if it is part of the
         #  controller.
 
-        self._last_motor_name = motor_name
-        motor = taurus.Device(self._last_motor_name)
+        motor = taurus.Device(motor_name)
         self._motor_axis = int(motor.get_property('axis')['axis'][0])
         attrs = motor.read_attributes(['step_per_unit', 'offset', 'sign'])
         values = [attr.value for attr in attrs]
@@ -158,6 +155,8 @@ class IcePAPTriggerController(TriggerGateController):
 
         if motor_name == self._last_motor_name:
             return
+
+        self._last_motor_name = motor_name
 
         if self._use_master_out:
             # remove previous connection and connect the new motor
@@ -206,7 +205,6 @@ class IcePAPTriggerController(TriggerGateController):
 
     def StartOne(self, axis):
         """Overwrite the StartOne method"""
-
         if self._time_mode:
             self._set_out(out=HIGH)
             time.sleep(0.01)
