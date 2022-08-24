@@ -52,10 +52,14 @@ class IcePAPTriggerController(TriggerGateController):
 
     # The properties used to connect to the ICEPAP motor controller
     ctrl_properties = {
-        'IcepapController': {
+        'Host': {
             Type: str,
-            Description: 'Icepap Controller name'
+            Description: 'The host name'
         },
+        'Port': {
+            Type: int, Description: 'The port number',
+            DefaultValue: 5000},
+
         'DefaultMotor': {
             Type: str,
             Description: 'motor base'
@@ -118,11 +122,7 @@ class IcePAPTriggerController(TriggerGateController):
         if self._retries_nr == 0:
             self._retries_nr = 1
         self._retries_nr = int(self._retries_nr)
-        self._ipap_ctrl = taurus.Device(self.IcepapController)
-        properties = self._ipap_ctrl.get_property(['host', 'port'])
-        host = properties['host'][0]
-        port = int(properties['port'][0])
-        self._ipap = icepap.IcePAPController(host=host, port=port,
+        self._ipap = icepap.IcePAPController(host=self.Host, port=self.Port,
                                              timeout=self.Timeout,
                                              auto_axes=True)
         self._last_motor_name = None
