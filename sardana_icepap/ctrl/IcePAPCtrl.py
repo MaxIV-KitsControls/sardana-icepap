@@ -363,6 +363,11 @@ class IcepapController(MotorController):
         """ If there is no connection, to the Icepap system, return False"""
         self.move_multiple_grouped = []
         self.move_multiple_not_grouped = []
+        
+    def PreStartOne(self, axis, pos):
+        """ If motor is off, return False"""
+        axis_state = self.attributes[axis]['status_value']
+        return axis_state.is_poweron()
 
     def StartOne(self, axis, pos):
         """ Store all positions in a variable and then react on the StartAll
