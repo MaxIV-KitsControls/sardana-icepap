@@ -77,7 +77,7 @@ class IcepapController(MotorController):
                       DefaultValue: True},
 
         'Indexer': {Type: str, Access: ReadWrite},
-        'PowerOn': {Type: bool, Access: ReadWrite},
+        'PowerOn': {Type: bool, Access: ReadWrite, Memorize: NotMemorized},
         'InfoA': {Type: str, Access: ReadWrite},
         'InfoB': {Type: str, Access: ReadWrite},
         'InfoC': {Type: str, Access: ReadWrite},
