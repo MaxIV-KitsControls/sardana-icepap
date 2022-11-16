@@ -71,6 +71,11 @@ class IcepapController(MotorController):
                         Description: 'Attribute to set the group flag '
                                      'on the movement',
                         DefaultValue: True},
+        'AutoESYNC': {Type: bool, Access: ReadWrite,
+                      Description: 'Attribute to send ESYNC command before '
+                                   'to do the absolute position calculation.',
+                      DefaultValue: True},
+
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
         'InfoA': {Type: str, Access: ReadWrite},
@@ -157,7 +162,8 @@ class IcepapController(MotorController):
         @param properties of the controller
         """
         MotorController.__init__(self, inst, props, *args, **kwargs)
-        self.ipap = IcePAPController(self.Host, self.Port, self.Timeout, auto_axes=True)
+        self.ipap = IcePAPController(self.Host, self.Port, self.Timeout,
+                                     auto_axes=True)
         self.attributes = {}
         self.state_multiple = []
         self.position_multiple = []
@@ -190,7 +196,10 @@ class IcepapController(MotorController):
         self.attributes[axis]['encoder_source_formula'] = 'VALUE/SPU'
         self.attributes[axis]['encoder_source_tango_attribute'] = \
             FakedAttributeProxy(self, axis, 'attr://PosEncIn')
+        self.attributes[axis]['internal_encoder'] = True
         self.attributes[axis]['move_in_group'] = True
+        self.attributes[axis]['auto_esync'] = True
+
 
         if axis in self.ipap:
             self._log.info('Added axis %d.' % axis)
@@ -370,15 +379,37 @@ class IcepapController(MotorController):
                 """
 
         spu = self.attributes[axis]["step_per_unit"]
-        desired_absolute_steps_pos = pos * spu
-        # CHECK IF THE POSITION SOURCE IS SET, IN THAT CASE POS HAS TO BE
-        # RECALCULATED USING SOURCE + FORMULA
-        if self.attributes[axis]['use_encoder_source']:
+        # The desired absolute position based on the theoretical position
+        # register (Axis/Motor). The reading of the position depends of
+        # Axis configuration. If the closed loop is ON the encoder
+        # position is near to the theoretical (set position), it depends of
+        # closed loop configuration.
+        # This controller allows to use an external encoder source like a
+        # ADC card or another internal axis register as absolute position
+        # value for Sardana. The theoretical position can differ
+        # to the measured one, this generates some different errors on the
+        # movements, to avoid it the controller sends the ESYNC command,
+        # when the axis has the attribute UseEncoderSource set to True.
+
+        if not self.attributes[axis]['use_encoder_source']:
+
+            desired_absolute_steps_pos = pos * spu
+
+        else:
+            if self.attributes[axis]['internal_encoder'] and \
+                    self.attributes[axis]['auto_esync']:
+                try:
+                    self.ipap[axis].esync()
+                except Exception as e:
+                    self._log.error('StartOne(%d,%f).\nException:\n%s' %
+                                    (axis, pos, str(e)))
+                    return False
+
             try:
                 current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
             except Exception as e:
-                self._log.error('PreStartOne(%d,%f).\nException:\n%s' %
+                self._log.error('StartOne(%d,%f).\nException:\n%s' %
                                 (axis, pos, str(e)))
                 return False
             pos_increment = pos - current_source_pos
@@ -550,6 +581,12 @@ class IcepapController(MotorController):
     def setMoveInGroup(self, axis, value):
         self.attributes[axis]['move_in_group'] = value
 
+    def getAutoESYNC(self, axis):
+        return self.attributes[axis]['auto_esync']
+
+    def setAutoESYNC(self, axis, value):
+        self.attributes[axis]['auto_esync'] = value
+
     def getPowerInfo(self, axis):
         # TODO: Analyze if it is included on the lib.
         return '\n'.join(self.ipap[axis].send_cmd('?ISG ?PWRINFO'))
@@ -578,6 +615,7 @@ class IcepapController(MotorController):
             # check if it is an internal attribute
             enc_src_name = 'encoder_source_tango_attribute'
             if value.lower().startswith('attr://'):
+                self.attributes[axis]['internal_encoder'] = True
                 # 2012/03/27 Improve attr:// syntax to
                 # allow reading of other axis of the same
                 # system without
@@ -594,6 +632,7 @@ class IcepapController(MotorController):
                     self.attributes[axis][enc_src_name] = \
                         FakedAttributeProxy(self, other_axis, other_value)
             else:
+                self.attributes[axis]['internal_encoder'] = False
                 self.attributes[axis][enc_src_name] = \
                     AttributeProxy(value)
         except Exception as e:
@@ -711,7 +750,11 @@ class IcepapController(MotorController):
             value = value.split()
 
         attr = self.param2attr[parameter.lower()]
-        self.ipap[axis].__setattr__(attr, value)
+        try:
+            self.ipap[axis].__setattr__(attr, value)
+        except Exception as e:
+            self._log.error("%s %s", parameter, str(e))
+
 
     def SendToCtrl(self, cmd):
         """ Send the icepap native commands.

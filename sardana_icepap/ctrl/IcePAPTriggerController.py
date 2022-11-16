@@ -52,9 +52,13 @@ class IcePAPTriggerController(TriggerGateController):
 
     # The properties used to connect to the ICEPAP motor controller
     ctrl_properties = {
-        'IcepapController': {
+        'Host': {
             Type: str,
-            Description: 'Icepap Controller name'
+            Description: 'The host name'
+        },
+        'Port': {
+            Type: int, Description: 'The port number',
+            DefaultValue: 5000
         },
         'UseMasterOut': {
             Type: bool,
@@ -114,16 +118,12 @@ class IcePAPTriggerController(TriggerGateController):
         if self._retries_nr == 0:
             self._retries_nr = 1
         self._retries_nr = int(self._retries_nr)
-        self._ipap_ctrl = taurus.Device(self.IcepapController)
-        properties = self._ipap_ctrl.get_property(['host', 'port'])
-        host = properties['host'][0]
-        port = int(properties['port'][0])
-        self._ipap = icepap.IcePAPController(host=host, port=port,
-                                             timeout=self.Timeout,
-                                             auto_axes=True)
+        self._ipap = icepap.IcePAPController(host=self.Host, port=self.Port,
+                                             timeout=self.Timeout)
         self._last_id = None
         self._motor_axis = None
         self._motor_spu = 1
+        self._is_tgtenc = False
 
     def _set_out(self, out=LOW):
         motor = self._ipap[self._motor_axis]
@@ -133,14 +133,8 @@ class IcePAPTriggerController(TriggerGateController):
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
-        print(motor.syncaux)
 
     def _configureMotor(self, id_):
-
-        if id_ == self._last_id:
-            return
-
-        self._last_id = id_
         # this is a bit hacky, ideally we could define an extra attribute
         # step_per_unit (would require updating it at the same time as the motor's one)
         motor_name = "motor/{}/{}".format(self._ipap_ctrl.alias(), id_)
@@ -148,6 +142,10 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_axis = id_
         self._motor_spu = motor.read_attribute('step_per_unit').value
 
+        if id_ == self._last_id:
+            return
+        self._last_id = id_
+           
         if self._use_master_out:
             # remove previous connection and connect the new motor
             pmux = self._ipap.get_pmux()
@@ -186,7 +184,7 @@ class IcePAPTriggerController(TriggerGateController):
 
         return state, status
 
-    def PreStartOne(self, axis):
+    def PreStartOne(self, axis, value=None):
         """PreStart the specified trigger"""
         # self._log.debug('PreStartOne(%d): entering...' % axis)
         if self._time_mode:
@@ -197,11 +195,16 @@ class IcePAPTriggerController(TriggerGateController):
 
     def StartOne(self, axis):
         """Overwrite the StartOne method"""
-        if not self._time_mode:
+        if self._time_mode:
+            self._set_out(out=HIGH)
+            time.sleep(0.01)
+            self._set_out(out=LOW)
             return
-        self._set_out(out=HIGH)
-        time.sleep(0.01)
-        self._set_out(out=LOW)
+
+        if self._is_tgtenc:
+            self._log.info('Send ESYNC to motor: %s',
+                           self._ipap[self._motor_axis].name)
+            self._ipap[self._motor_axis].esync()
 
     def AbortOne(self, axis):
         """Start the specified trigger"""
@@ -224,6 +227,15 @@ class IcePAPTriggerController(TriggerGateController):
             return
 
         self._time_mode = False
+
+        # Check target encoder configuration to send ESYNC on StartOne
+        try:
+            tgtenc_cfg = \
+                self._ipap[self._motor_axis].get_cfg('TGTENC')['TGTENC']
+            self._is_tgtenc = tgtenc_cfg == 'NONE'
+        except Exception as e:
+            self._log.error('SynchOne(%d).\nException:\n%s' % (axis, str(e)))
+            return False
 
         start_user = synch_group[SynchParam.Initial][SynchDomain.Position]
         delta_user = synch_group[SynchParam.Total][SynchDomain.Position]
