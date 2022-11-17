@@ -58,11 +58,7 @@ class IcePAPTriggerController(TriggerGateController):
         },
         'Port': {
             Type: int, Description: 'The port number',
-            DefaultValue: 5000},
-
-        'DefaultMotor': {
-            Type: str,
-            Description: 'motor base'
+            DefaultValue: 5000
         },
         'UseMasterOut': {
             Type: bool,
@@ -124,11 +120,9 @@ class IcePAPTriggerController(TriggerGateController):
         self._retries_nr = int(self._retries_nr)
         self._ipap = icepap.IcePAPController(host=self.Host, port=self.Port,
                                              timeout=self.Timeout)
-        self._last_motor_name = None
+        self._last_id = None
         self._motor_axis = None
         self._motor_spu = 1
-        self._motor_offset = 0
-        self._motor_sign = 1
         self._is_tgtenc = False
 
     def _set_out(self, out=LOW):
@@ -140,24 +134,18 @@ class IcePAPTriggerController(TriggerGateController):
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
 
-    def _configureMotor(self, motor_name):
-        if motor_name is None:
-            motor_name = self.DefaultMotor
-
-        # TODO: Implement verification of the motor if it is part of the
-        #  controller.
-
+    def _configureMotor(self, id_):
+        # this is a bit hacky, ideally we could define an extra attribute
+        # step_per_unit (would require updating it at the same time as the motor's one)
+        motor_name = "motor/{}/{}".format(self._ipap_ctrl.alias(), id_)
         motor = taurus.Device(motor_name)
-        self._motor_axis = int(motor.get_property('axis')['axis'][0])
-        attrs = motor.read_attributes(['step_per_unit', 'offset', 'sign'])
-        values = [attr.value for attr in attrs]
-        self._motor_spu, self._motor_offset, self._motor_sign = values
+        self._motor_axis = id_
+        self._motor_spu = motor.read_attribute('step_per_unit').value
 
-        if motor_name == self._last_motor_name:
+        if id_ == self._last_id:
             return
-
-        self._last_motor_name = motor_name
-
+        self._last_id = id_
+           
         if self._use_master_out:
             # remove previous connection and connect the new motor
             pmux = self._ipap.get_pmux()
@@ -175,22 +163,24 @@ class IcePAPTriggerController(TriggerGateController):
         """Get the trigger/gate state"""
         # self._log.debug('StateOne(%d): entering...' % axis)
         hw_state = None
-        for i in range(self._retries_nr):
-            try:
-                hw_state = self._ipap[self._motor_axis].state
-                break
-            except Exception:
-                self._log.error('State reading error retry: {0}'.format(i))
+        state = State.On
+        status = 'No synchronization in progress'
+        if self._motor_axis is not None:
+            for i in range(self._retries_nr):
+                try:
+                    hw_state = self._ipap[self._motor_axis].state
+                    break
+                except Exception:
+                    self._log.error('State reading error retry: {0}'.format(i))
 
-        if hw_state is None or not hw_state.is_poweron():
-            state = State.Alarm
-            status = 'The motor is power off or not possible to read State'
-        elif hw_state.is_moving() or hw_state.is_settling():
-            state = State.Moving
-            status = 'Moving'
-        else:
-            state = State.On
-            status = 'Motor is not generating triggers.'
+            if hw_state is None or not hw_state.is_poweron():
+                state = State.Alarm
+                status = 'The motor is power off or not possible to read State'
+            elif hw_state.is_moving() or hw_state.is_settling():
+                state = State.Moving
+                status = 'Moving'
+            else:
+                status = 'Motor is not generating triggers.'
 
         return state, status
 
@@ -221,26 +211,6 @@ class IcePAPTriggerController(TriggerGateController):
         self._log.debug('AbortOne(%d): entering...' % axis)
         self._set_out(out=LOW)
 
-    def SetAxisPar(self, axis, name, value):
-        idx = axis - 1
-        tg = self.triggers[idx]
-        name = name.lower()
-        pars = ['offset', 'passive_interval', 'repetitions', 'sign',
-                'info_channels']
-        if name in pars:
-            tg[name] = value
-
-    def GetAxisPar(self, axis, name):
-        idx = axis - 1
-        tg = self.triggers[idx]
-        name = name.lower()
-        v = tg.get(name, None)
-        if v is None:
-            msg = ('GetAxisPar(%d). The parameter %s does not exist.'
-                   % (axis, name))
-            self._log.error(msg)
-        return v
-
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
         synch_group = configuration[0]
@@ -254,20 +224,9 @@ class IcePAPTriggerController(TriggerGateController):
                 raise ValueError(msg)
             else:
                 self._time_mode = True
-
-            if not self._use_master_out and \
-                    self._last_motor_name != self.DefaultMotor:
-                raise RuntimeError('The motor used in the scan is not the '
-                                   'same than the motor configure with the '
-                                   'trigger cable')
-            self._configureMotor(self._last_motor_name)
             return
 
         self._time_mode = False
-        # Synchronization by time and position (continuous scan)
-        # TODO: Uncomment next line when Sardana PR 671 was integrated.
-        # master = synch_group[SynchParam.Master][SynchDomain.Position]
-        master = self._last_motor_name
 
         # Check target encoder configuration to send ESYNC on StartOne
         try:
@@ -278,19 +237,11 @@ class IcePAPTriggerController(TriggerGateController):
             self._log.error('SynchOne(%d).\nException:\n%s' % (axis, str(e)))
             return False
 
-        if not self._use_master_out and master != self.DefaultMotor:
-            raise RuntimeError('The motor used in the scan is not the '
-                               'same than the motor configure with the '
-                               'trigger cable')
-
-        self._configureMotor(master)
-
         start_user = synch_group[SynchParam.Initial][SynchDomain.Position]
         delta_user = synch_group[SynchParam.Total][SynchDomain.Position]
 
-        start_user -= self._motor_offset
-        start = start_user * self._motor_spu/self._motor_sign
-        delta = delta_user * self._motor_spu/self._motor_sign
+        start = start_user * self._motor_spu
+        delta = delta_user * self._motor_spu
 
         end = start + delta * nr_points
         self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
@@ -328,15 +279,17 @@ class IcePAPTriggerController(TriggerGateController):
                                    '{0}'.format(i))
         if not table_loaded:
             raise RuntimeError('Can not send trigger table.')
+    
+    def SetAxisPar(self, axis, par, value):
+        if axis == 0 and par == "active_input":
+            self._configureMotor(value)
+        else:
+            raise ValueError(
+                "unsupported axis par {} for axis {}".format(par, axis))
 
     # -------------------------------------------------------------------------
     #               Axis Extra Parameters
     # -------------------------------------------------------------------------
-    def setMasterMotor(self, axis, value):
-        self._configureMotor(value)
-
-    def getMasterMotor(self, axis):
-        return self._last_motor_name
 
     def setStartTriggerOnly(self, axis, value):
         self._start_trigger_only = value
