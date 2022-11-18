@@ -80,14 +80,6 @@ class IcePAPTriggerController(TriggerGateController):
 
     }
     axis_attributes = {
-        # TODO: This attribute should be removed when the Sardana PR 671 is
-        # integrated.
-        'MasterMotor': {
-            Type: str,
-            Description: 'Master motor name used to generate the trigger',
-            Access: DataAccess.ReadWrite,
-            Memorize: Memorized
-        },
         'StartTriggerOnly': {
             Type: bool,
             Description: 'Launch only the First trigger position',
