@@ -60,10 +60,9 @@ class IcePAPTriggerController(TriggerGateController):
             Type: int, Description: 'The port number',
             DefaultValue: 5000
         },
-        'UseMasterOut': {
-            Type: bool,
-            Description: 'use the master syncaux output',
-            DefaultValue: True
+        'IcepapCrtlAlias': {
+            Type: str,
+            Description: 'The host name'
         },
         'AxisInfos': {
             Type: str,
@@ -101,7 +100,6 @@ class IcePAPTriggerController(TriggerGateController):
 
         self._time_mode = False
         self._start_trigger_only = False
-        self._use_master_out = self.UseMasterOut
         self._axis_info_list = list(map(str.strip, self.AxisInfos.split(',')))
 
         # Calculate the number of retries according to the timeout and the
@@ -117,19 +115,20 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_spu = 1
         self._is_tgtenc = False
 
-    def _set_out(self, out=LOW):
+    def _set_out(self, out=LOW, axis=0):
         motor = self._ipap[self._motor_axis]
         value = [out, 'normal']
-        if self._use_master_out:
+        if axis == 0:
             motor.syncaux = value
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
 
-    def _configureMotor(self, id_):
+    def _configureMotor(self, id_, axis):
         # this is a bit hacky, ideally we could define an extra attribute
-        # step_per_unit (would require updating it at the same time as the motor's one)
-        motor_name = "motor/{}/{}".format(self._ipap_ctrl.alias(), id_)
+        # step_per_unit (would require updating it at the same time as the
+        # motor's one)
+        motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, id_)
         motor = taurus.Device(motor_name)
         self._motor_axis = id_
         self._motor_spu = motor.read_attribute('step_per_unit').value
@@ -138,7 +137,7 @@ class IcePAPTriggerController(TriggerGateController):
             return
         self._last_id = id_
            
-        if self._use_master_out:
+        if axis == 0:
             # remove previous connection and connect the new motor
             pmux = self._ipap.get_pmux()
             for p in pmux:
@@ -180,17 +179,17 @@ class IcePAPTriggerController(TriggerGateController):
         """PreStart the specified trigger"""
         # self._log.debug('PreStartOne(%d): entering...' % axis)
         if self._time_mode:
-            self._set_out(out=LOW)
+            self._set_out(LOW, axis)
         else:
-            self._set_out(out=ECAM)
+            self._set_out(ECAM, axis)
         return True
 
     def StartOne(self, axis):
         """Overwrite the StartOne method"""
         if self._time_mode:
-            self._set_out(out=HIGH)
+            self._set_out(HIGH, axis)
             time.sleep(0.01)
-            self._set_out(out=LOW)
+            self._set_out(LOW, axis)
             return
 
         if self._is_tgtenc:
@@ -201,7 +200,8 @@ class IcePAPTriggerController(TriggerGateController):
     def AbortOne(self, axis):
         """Start the specified trigger"""
         self._log.debug('AbortOne(%d): entering...' % axis)
-        self._set_out(out=LOW)
+
+        self._set_out(LOW, axis)
 
     def SynchOne(self, axis, configuration):
         # TODO: implement the configuration for multiples configuration
@@ -274,7 +274,7 @@ class IcePAPTriggerController(TriggerGateController):
     
     def SetAxisPar(self, axis, par, value):
         if axis == 0 and par == "active_input":
-            self._configureMotor(value)
+            self._configureMotor(value, axis)
         else:
             raise ValueError(
                 "unsupported axis par {} for axis {}".format(par, axis))
