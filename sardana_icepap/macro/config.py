@@ -1,5 +1,7 @@
 from PyTango import DeviceProxy
 import time
+import taurus
+import json
 from sardana.macroserver.macro import Macro, Type
 
 
@@ -222,3 +224,31 @@ class ipap_set_steps_per_turn(Macro):
             return False
 
 # ---------------------------------------------------------------
+
+
+class ipap_tg_config(Macro):
+    """
+    Macro to configure the MoveableOnInput of the trigger
+    """
+    param_def = [
+        ["tg", Type.TriggerGate, None,
+         "Icepap multiplexor trigger gate (axis=0)"]
+    ]
+
+    def run(self, tg):
+        if get_property('axis')['axis'][0] != 0:
+            raise ValueError('Only valid for multiplexor axis')
+        ipap_ctrl_name = tg.name().split('/')[1]
+        ipap_ctrl = self.getController(ipap_ctrl_name)
+        config = {}
+        for element in ipap_ctrl.elementlist:
+            proxy = taurus.Device(element)
+            fullname = proxy.fullname
+            axis = proxy.get_property('axis')['axis'][0]
+            config[fullname] = axis
+        encoder = json.JSONEncoder()
+        config_encoded = encoder.encode(config)
+        tg.MoveableOnInput = config_encoded
+
+
+
