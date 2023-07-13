@@ -30,7 +30,6 @@ import taurus
 import tango
 import icepap
 import json
-
 # [WIP] This controller need the Sardana PR 671 !!!!!
 
 LOW = 'low'
@@ -73,6 +72,14 @@ class IcePAPTriggerController(TriggerGateController):
                          'axis (!=0)',
             DefaultValue: 'InfoA'
         },
+        'MasterSyncPos': {
+            Type: str,
+            Description: 'dic "axis, pos_sel, polarity" e.g: '
+                         ' {44: ["ENCIN", "NORMAL"]}'  
+                         'If the axis is not on the this list the syncpos '
+                         'will use default value: AXIS,NORMAL',
+            DefaultValue: ''
+        },
         'Timeout': {
             Type: float,
             Description: 'Timeout used for the IcePAP socket communication',
@@ -104,6 +111,7 @@ class IcePAPTriggerController(TriggerGateController):
         self._start_trigger_only = False
         self._axis_info_list = list(map(str.strip, self.AxisInfos.split(',')))
 
+
         # Calculate the number of retries according to the timeout and the
         # default Tango timeout (3s)
         self._retries_nr = 3 // (self.Timeout + 0.1)
@@ -117,12 +125,18 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_spu = 1
         self._is_tgtenc = False
         self._moveable_on_input = None
+        self._master_syncpos = None
+        if self.MasterSyncPos:
+            self._master_syncpos = eval(self.MasterSyncPos)
 
     def _set_out(self, out=LOW, axis=0):
         motor = self._ipap[self._motor_axis]
         value = [out, 'normal']
         if axis == 0:
             motor.syncaux = value
+            if self._master_syncpos and \
+                self._motor_axis in self._master_syncpos:
+                motor.syncpos = self._master_syncpos[self._motor_axis]
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
@@ -257,6 +271,9 @@ class IcePAPTriggerController(TriggerGateController):
         delta = delta_user * self._motor_spu
 
         end = start + delta * nr_points
+
+        # TODO implement calculation of the syncpos
+
         self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
                         (start, end, nr_points, delta))
 
