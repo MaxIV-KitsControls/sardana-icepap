@@ -38,6 +38,7 @@ ECAM = 'ecam'
 
 MAX_ECAM_VALUES = 20477
 
+ECAM_SOURCE_VALUES=['ENCIN','ABSENC', 'INPOS']
 
 class IcePAPTriggerController(TriggerGateController):
     """Basic IcePAPPositionTriggerGateController.
@@ -72,10 +73,10 @@ class IcePAPTriggerController(TriggerGateController):
                          'axis (!=0)',
             DefaultValue: 'InfoA'
         },
-        'MasterSyncPos': {
+        'EcamSource': {
             Type: str,
             Description: 'dic "axis, pos_sel, polarity" e.g: '
-                         ' {44: ["ENCIN", "NORMAL"]}'  
+                         ' {44: "ENCIN"}'  
                          'If the axis is not on the this list the syncpos '
                          'will use default value: AXIS,NORMAL',
             DefaultValue: ''
@@ -125,18 +126,30 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_spu = 1
         self._is_tgtenc = False
         self._moveable_on_input = None
-        self._master_syncpos = None
-        if self.MasterSyncPos:
-            self._master_syncpos = eval(self.MasterSyncPos)
+        self._ecam_source_dict = None
+        self._ecam_source = "AXIS"
+        if self.EcamSource:
+            self._ecam_source_dict = eval(self.EcamSource)
 
     def _set_out(self, out=LOW, axis=0):
         motor = self._ipap[self._motor_axis]
         value = [out, 'normal']
         if axis == 0:
             motor.syncaux = value
-            if self._master_syncpos and \
-                self._motor_axis in self._master_syncpos:
-                motor.syncpos = self._master_syncpos[self._motor_axis]
+            if self._ecam_source_dict and \
+                self._motor_axis in self._ecam_source_dict:
+#                motor.syncpos = self._master_syncpos[self._motor_axis]
+                enc = self._ecam_source_dict[self._motor_axis].upper()
+                if enc == 'TGTENC':
+                    enc = motor.get_cfg('TGTENC')['TGTENC']
+                    self._ecam_source_dict[self._motor_axis] =  enc
+                if enc in ECAM_SOURCE_VALUES:
+                    self._ecam_source = self._ecam_source_dict[self._motor_axis]
+                else:
+                    self._log.error('Ecam source {} not supported, AXIS will be used'.format(enc))
+                    self._ecam_source = "AXIS"
+            else:
+                self._ecam_source = "AXIS"
         else:
             for info_out in self._axis_info_list:
                 setattr(motor, info_out, value)
@@ -272,7 +285,28 @@ class IcePAPTriggerController(TriggerGateController):
 
         end = start + delta * nr_points
 
-        # TODO implement calculation of the syncpos
+        # Calculation of the syncpos according to the selected encoder
+        motor = self._ipap[self._motor_axis]
+        enc = self._ecam_source.upper()
+        if enc != 'AXIS':
+            if enc == 'ENCIN':
+                cfgstep = 'EINNSTEP'
+                cfgturn = 'EINNTURN'
+            elif enc == 'ABSENC':
+                cfgstep = 'ABSNSTEP'
+                cfgturn = 'ABSNTURN'
+            elif enc == 'INPOS':
+                cfgstep = 'INPNSTEP'
+                cfgturn = 'INPNTURN'
+            else:
+                cfgstep = 'ANSTEP'
+                cfgturn = 'ANTURN'
+        
+            enc_resol = int(motor.get_cfg(cfgstep)[cfgstep])/int(motor.get_cfg(cfgturn)[cfgturn])
+            motor_resol = int(motor.get_cfg('ANSTEP')['ANSTEP'])/int(motor.get_cfg('ANTURN')['ANTURN'])
+            start = (start / motor_resol) * enc_resol
+            delta = (delta / motor_resol) * enc_resol
+            end = (end / motor_resol) * enc_resol
 
         self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
                         (start, end, nr_points, delta))
@@ -301,7 +335,7 @@ class IcePAPTriggerController(TriggerGateController):
         table_loaded = False
         for i in range(self._retries_nr):
             try:
-                self._ipap[self._motor_axis].set_ecam_table(trigger_table)
+                self._ipap[self._motor_axis].set_ecam_table(trigger_table, source=self._ecam_source)
                 table_loaded = True
                 break
             except Exception:
