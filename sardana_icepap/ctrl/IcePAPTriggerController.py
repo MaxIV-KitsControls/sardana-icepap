@@ -37,8 +37,8 @@ HIGH = 'high'
 ECAM = 'ecam'
 
 MAX_ECAM_VALUES = 20477
+ECAM_SOURCE_VALUES = ['ENCIN', 'ABSENC', 'INPOS']
 
-ECAM_SOURCE_VALUES=['ENCIN','ABSENC', 'INPOS']
 
 class IcePAPTriggerController(TriggerGateController):
     """Basic IcePAPPositionTriggerGateController.
@@ -76,7 +76,7 @@ class IcePAPTriggerController(TriggerGateController):
         'EcamSource': {
             Type: str,
             Description: 'dic "axis, pos_sel, polarity" e.g: '
-                         ' {44: "ENCIN"}'  
+                         ' {44: "ENCIN"}'
                          'If the axis is not on the this list the syncpos '
                          'will use default value: AXIS,NORMAL',
             DefaultValue: ''
@@ -112,7 +112,6 @@ class IcePAPTriggerController(TriggerGateController):
         self._start_trigger_only = False
         self._axis_info_list = list(map(str.strip, self.AxisInfos.split(',')))
 
-
         # Calculate the number of retries according to the timeout and the
         # default Tango timeout (3s)
         self._retries_nr = 3 // (self.Timeout + 0.1)
@@ -137,16 +136,16 @@ class IcePAPTriggerController(TriggerGateController):
         if axis == 0:
             motor.syncaux = value
             if self._ecam_source_dict and \
-                self._motor_axis in self._ecam_source_dict:
-#                motor.syncpos = self._master_syncpos[self._motor_axis]
+                    self._motor_axis in self._ecam_source_dict:
                 enc = self._ecam_source_dict[self._motor_axis].upper()
                 if enc == 'TGTENC':
                     enc = motor.get_cfg('TGTENC')['TGTENC']
-                    self._ecam_source_dict[self._motor_axis] =  enc
+                    self._ecam_source_dict[self._motor_axis] = enc
                 if enc in ECAM_SOURCE_VALUES:
                     self._ecam_source = self._ecam_source_dict[self._motor_axis]
                 else:
-                    self._log.error('Ecam source {} not supported, AXIS will be used'.format(enc))
+                    self._log.error(
+                        'Ecam source {} not supported, AXIS will be used'.format(enc))
                     self._ecam_source = "AXIS"
             else:
                 self._ecam_source = "AXIS"
@@ -166,7 +165,7 @@ class IcePAPTriggerController(TriggerGateController):
         if id_ == self._last_id:
             return
         self._last_id = id_
-           
+
         if axis == 0:
             # remove previous connection and connect the new motor
             pmux = self._ipap.get_pmux()
@@ -301,9 +300,11 @@ class IcePAPTriggerController(TriggerGateController):
             else:
                 cfgstep = 'ANSTEP'
                 cfgturn = 'ANTURN'
-        
-            enc_resol = int(motor.get_cfg(cfgstep)[cfgstep])/int(motor.get_cfg(cfgturn)[cfgturn])
-            motor_resol = int(motor.get_cfg('ANSTEP')['ANSTEP'])/int(motor.get_cfg('ANTURN')['ANTURN'])
+
+            enc_resol = int(motor.get_cfg(cfgstep)[
+                            cfgstep])/int(motor.get_cfg(cfgturn)[cfgturn])
+            motor_resol = int(motor.get_cfg('ANSTEP')[
+                              'ANSTEP'])/int(motor.get_cfg('ANTURN')['ANTURN'])
             start = (start / motor_resol) * enc_resol
             delta = (delta / motor_resol) * enc_resol
             end = (end / motor_resol) * enc_resol
@@ -335,18 +336,19 @@ class IcePAPTriggerController(TriggerGateController):
         table_loaded = False
         for i in range(self._retries_nr):
             try:
-                self._ipap[self._motor_axis].set_ecam_table(trigger_table, source=self._ecam_source)
+                self._ipap[self._motor_axis].set_ecam_table(
+                    trigger_table, source=self._ecam_source)
                 table_loaded = True
                 break
             except Exception:
                 self._log.warning('Send trigger table error retry: '
-                                   '{0}'.format(i))
+                                  '{0}'.format(i))
         if not table_loaded:
             raise RuntimeError('Can not send trigger table.')
 
     def GetAxisPar(self, axis, parameter):
         if axis == 0 and parameter == "MoveableOnInput":
-           return self._moveable_on_input
+            return self._moveable_on_input
 
     def SetAxisPar(self, axis, par, value):
         if axis == 0 and par == "active_input":
