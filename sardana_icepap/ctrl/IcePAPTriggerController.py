@@ -29,7 +29,6 @@ from sardana.pool.controller import TriggerGateController, Access, Memorize, \
 import taurus
 import icepap
 
-# [WIP] This controller need the Sardana PR 671 !!!!!
 
 LOW = 'low'
 HIGH = 'high'
@@ -141,10 +140,11 @@ class IcePAPTriggerController(TriggerGateController):
                     enc = motor.get_cfg('TGTENC')['TGTENC']
                     self._ecam_source_dict[self._motor_axis] = enc
                 if enc in ECAM_SOURCE_VALUES:
-                    self._ecam_source = self._ecam_source_dict[self._motor_axis]
+                    self._ecam_source = \
+                        self._ecam_source_dict[self._motor_axis]
                 else:
-                    self._log.error(
-                        'Ecam source {} not supported, AXIS will be used'.format(enc))
+                    self._log.error('Ecam source {} not supported, '
+                                    'AXIS will be used'.format(enc))
                     self._ecam_source = "AXIS"
             else:
                 self._ecam_source = "AXIS"
