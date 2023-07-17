@@ -92,6 +92,11 @@ class IcepapController(MotorController):
         'PosInPos': {Type: float, Access: ReadOnly},
         'PosAbsEnc': {Type: float, Access: ReadOnly},
         'PosMotor': {Type: float, Access: ReadOnly},
+        'VelMotor': {Type: float, Access: ReadOnly},
+        'VelCurrent': {Type: float, Access: ReadOnly},
+        'DifAxTgtEnc': {Type: float, Access: ReadOnly},
+        'DifAxShftEnc': {Type: float, Access: ReadOnly},
+        'DifAxMotor': {Type: float, Access: ReadOnly},
         'EncAxis': {Type: float, Access: ReadOnly},
         # TODO: Check because in fw 3.17 does not work
         # 'EncIndexer': {Type: float, Access: ReadOnly},
@@ -100,6 +105,7 @@ class IcepapController(MotorController):
         'EncEncIn': {Type: float, Access: ReadOnly},
         'EncInPos': {Type: float, Access: ReadOnly},
         'EncAbsEnc': {Type: float, Access: ReadOnly},
+        'MeasureI': {Type: float, Access: ReadOnly},
         # 12/08/2009 REQUESTED FROM LOTHAR, A COMPLETE MESSAGE ABOUT WHAT
         # IS HAPPENING
         'StatusDriverBoard': {Type: int, Access: ReadOnly},
@@ -686,6 +692,7 @@ class IcepapController(MotorController):
                   'infoc': 'infoc',
                   'enableencoder_5v': 'auxps',
                   'closedloop': 'pcloop',
+                  'measurei': 'meas_i',
                   'posaxis': 'pos',
                   'posshftenc': 'pos_shftenc',
                   'postgtenc': 'pos_tgtenc',
@@ -730,18 +737,31 @@ class IcepapController(MotorController):
         @param name of the parameter to retrive
         @return the value of the parameter
         """
-        if parameter.lower() == 'statuslim-':
+        # the next 3 attribs dont reach the lower part of the function in
+        # normal behaviour. mmm
+        parameter = parameter.lower()
+        if parameter == 'difaxmotor':
+            return self.ipap[axis].pos - self.ipap[axis].pos_motor
+        elif parameter == 'difaxtgtenc':
+            return self.ipap[axis].pos - self.ipap[axis].pos_tgtenc
+        elif parameter == 'difaxshftenc':
+            return self.ipap[axis].pos - self.ipap[axis].pos_shftenc
+        elif parameter == 'velmotor':
+            return self.ipap[axis].get_velocity(vtype='MOTOR')
+        elif parameter == 'velcurrent':
+            return self.ipap[axis].get_velocity(vtype='CURRENT')
+        elif parameter == 'statuslim-':
             parameter = 'statuslimneg'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
                               'compatible.')
-        elif parameter.lower() == 'statuslim+':
+        elif parameter == 'statuslim+':
             parameter = 'statuslimpos'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
                               'compatible.')
 
-        attr = self.param2attr[parameter.lower()]
+        attr = self.param2attr[parameter]
         result = self.ipap[axis].__getattribute__(attr)
-        if parameter.lower().startswith('info'):
+        if parameter.startswith('info'):
             result = ' '.join(result)
         return result
 
