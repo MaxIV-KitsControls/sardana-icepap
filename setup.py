@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 # The version is updated automatically with bumpversion
 # Do not update manually
-__version = "2.1.0"
+__version = "2.2.0"
 
 
 setup(
