@@ -26,7 +26,6 @@ from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController, Access, Memorize, \
     Memorized, Type, Description, DataAccess, DefaultValue
-import taurus
 import tango
 import icepap
 
@@ -159,7 +158,7 @@ class IcePAPTriggerController(TriggerGateController):
         # step_per_unit (would require updating it at the same time as the
         # motor's one)
         motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, id_)
-        motor = taurus.Device(motor_name)
+        motor = tango.DeviceProxy(motor_name)
         self._motor_axis = id_
         self._motor_spu = motor.read_attribute('step_per_unit').value
 
@@ -183,17 +182,16 @@ class IcePAPTriggerController(TriggerGateController):
     def AddDevice(self, axis):
         if axis == 0:
             for i in self._ipap.find_axes():
-                # this is a bit hacky, ideally we could define an extra
-                # attribute step_per_unit (would require updating it at the
-                # same time as the motor's one)
+                # this is a bit hacky, ideally we should find a solution to
+                # not hardcode the model.
                 motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, i)
                 try:
                     motor = tango.DeviceProxy(motor_name)
                     alias = motor.alias()
                     self._moveable_on_input[alias] = i
                 except Exception:
-                    self._log.error(
-                        "Axis {} not used by Sardana (no alias)".format(motor_name))
+                    self._log.error("Axis %s not used by Sardana (no "
+                                    "alias)", motor_name)
                     pass
 
     def StateOne(self, axis):
@@ -344,6 +342,9 @@ class IcePAPTriggerController(TriggerGateController):
                                   '{0}'.format(i))
         if not table_loaded:
             raise RuntimeError('Can not send trigger table.')
+
+    # This feature will work when Sardana integrates MR
+    # https://gitlab.com/sardana-org/sardana/-/merge_requests/1927
 
     def GetAxisPar(self, axis, parameter):
         if axis == 0 and parameter == "moveableoninput":
