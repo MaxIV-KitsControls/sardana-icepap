@@ -74,7 +74,7 @@ class IcepapController(MotorController):
         'AutoESYNC': {Type: bool, Access: ReadWrite,
                       Description: 'Attribute to send ESYNC command before '
                                    'to do the absolute position calculation.',
-                      DefaultValue: True},
+                      DefaultValue: False},
 
         'Indexer': {Type: str, Access: ReadWrite},
         'PowerOn': {Type: bool, Access: ReadWrite},
@@ -212,7 +212,7 @@ class IcepapController(MotorController):
             FakedAttributeProxy(self, axis, 'attr://PosEncIn')
         self.attributes[axis]['internal_encoder'] = True
         self.attributes[axis]['move_in_group'] = True
-        self.attributes[axis]['auto_esync'] = True
+        self.attributes[axis]['auto_esync'] = False
 
 
         if axis in self.ipap:
