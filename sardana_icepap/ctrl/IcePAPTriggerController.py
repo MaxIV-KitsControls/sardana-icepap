@@ -191,8 +191,8 @@ class IcePAPTriggerController(TriggerGateController):
                     alias = motor.alias()
                     self._moveable_on_input[alias] = i
                 except Exception:
-                    self._log.error(
-                        "Axis {} not used by Sardana (no alias)".format(motor_name))
+                    self._log.error("Axis %s not used by Sardana (no "
+                                    "alias)", motor_name)
                     pass
 
     def StateOne(self, axis):
