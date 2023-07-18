@@ -27,6 +27,7 @@ from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController, Access, Memorize, \
     Memorized, Type, Description, DataAccess, DefaultValue
 import taurus
+import tango
 import icepap
 
 
@@ -122,9 +123,10 @@ class IcePAPTriggerController(TriggerGateController):
         self._motor_axis = None
         self._motor_spu = 1
         self._is_tgtenc = False
-        self._moveable_on_input = None
         self._ecam_source_dict = None
         self._ecam_source = "AXIS"
+        self.setted = False
+        self._moveable_on_input = {}
         if self.EcamSource:
             self._ecam_source_dict = eval(self.EcamSource)
 
@@ -137,7 +139,7 @@ class IcePAPTriggerController(TriggerGateController):
                     self._motor_axis in self._ecam_source_dict:
                 enc = self._ecam_source_dict[self._motor_axis].upper()
                 if enc == 'TGTENC':
-                    enc = motor.get_cfg('TGTENC')['TGTENC']
+                    enc = motor.get_cfg('TGTENC')['TGTENC'].upper()
                     self._ecam_source_dict[self._motor_axis] = enc
                 if enc in ECAM_SOURCE_VALUES:
                     self._ecam_source = \
@@ -177,6 +179,22 @@ class IcePAPTriggerController(TriggerGateController):
 
             pmux = self._ipap.get_pmux()
             self._log.debug('_connectMotor PMUX={0}'.format(pmux))
+
+    def AddDevice(self, axis):
+        if axis == 0:
+            for i in self._ipap.find_axes():
+                # this is a bit hacky, ideally we could define an extra
+                # attribute step_per_unit (would require updating it at the
+                # same time as the motor's one)
+                motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, i)
+                try:
+                    motor = tango.DeviceProxy(motor_name)
+                    alias = motor.alias()
+                    self._moveable_on_input[alias] = i
+                except Exception:
+                    self._log.error(
+                        "Axis {} not used by Sardana (no alias)".format(motor_name))
+                    pass
 
     def StateOne(self, axis):
         """Get the trigger/gate state"""
@@ -327,9 +345,18 @@ class IcePAPTriggerController(TriggerGateController):
         if not table_loaded:
             raise RuntimeError('Can not send trigger table.')
 
+    def GetAxisPar(self, axis, parameter):
+        if axis == 0 and parameter == "moveableoninput":
+            return self._moveable_on_input
+        else:
+            return None
+
     def SetAxisPar(self, axis, par, value):
-        if axis == 0 and par == "active_input":
-            self._configureMotor(value, axis)
+        if axis == 0:
+            if par == "moveableoninput":
+                self._moveable_on_input = value
+            if par == "active_input":
+                self._configureMotor(value, axis)
         else:
             raise ValueError(
                 "unsupported axis par {} for axis {}".format(par, axis))
