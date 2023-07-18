@@ -26,7 +26,6 @@ from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController, Access, Memorize, \
     Memorized, Type, Description, DataAccess, DefaultValue
-import taurus
 import tango
 import icepap
 
@@ -159,7 +158,7 @@ class IcePAPTriggerController(TriggerGateController):
         # step_per_unit (would require updating it at the same time as the
         # motor's one)
         motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, id_)
-        motor = taurus.Device(motor_name)
+        motor = tango.DeviceProxy(motor_name)
         self._motor_axis = id_
         self._motor_spu = motor.read_attribute('step_per_unit').value
 
