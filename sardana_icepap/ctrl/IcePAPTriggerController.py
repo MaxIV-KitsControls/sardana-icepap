@@ -182,9 +182,8 @@ class IcePAPTriggerController(TriggerGateController):
     def AddDevice(self, axis):
         if axis == 0:
             for i in self._ipap.find_axes():
-                # this is a bit hacky, ideally we could define an extra
-                # attribute step_per_unit (would require updating it at the
-                # same time as the motor's one)
+                # this is a bit hacky, ideally we should find a solution to
+                # not hardcode the model.
                 motor_name = "motor/{}/{}".format(self.IcepapCtrlAlias, i)
                 try:
                     motor = tango.DeviceProxy(motor_name)
@@ -343,6 +342,9 @@ class IcePAPTriggerController(TriggerGateController):
                                   '{0}'.format(i))
         if not table_loaded:
             raise RuntimeError('Can not send trigger table.')
+
+    # This feature will work when Sardana integrates MR
+    # https://gitlab.com/sardana-org/sardana/-/merge_requests/1927
 
     def GetAxisPar(self, axis, parameter):
         if axis == 0 and parameter == "moveableoninput":
