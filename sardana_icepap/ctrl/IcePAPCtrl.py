@@ -146,6 +146,14 @@ class IcepapController(MotorController):
                                  'It can use the same signals sources than '
                                  'InfoX.',
                     Access: ReadWrite},
+        'SyncPos': {Type: [str],
+                    Description: 'Associates the internal Sync signal to the '
+                                 'position signal selected',
+                    Access: ReadWrite},
+        'SyncRes': {Type: [str],
+                    Description: 'Sets the resolution of the internal Sync '
+                                 'position signal.',
+                    Access: ReadWrite},
         'EcamOut': {Type: str,
                     Description: 'Ecam signal output [OFF, PULSE, LOW, HIGH]',
                     Access: ReadWrite},
@@ -708,6 +716,7 @@ class IcepapController(MotorController):
                   'encabsenc': 'enc_absenc',
                   'ecamout': 'ecam',
                   'syncaux': 'syncaux',
+                  'syncpos': 'syncpos',
                   'status5vpower': 'state_5vpower',
                   'statusdriverboard': 'status',
                   'statusalive': 'state_alive',
@@ -750,6 +759,9 @@ class IcepapController(MotorController):
             return self.ipap[axis].get_velocity(vtype='MOTOR')
         elif parameter == 'velcurrent':
             return self.ipap[axis].get_velocity(vtype='CURRENT')
+        elif parameter == 'syncres':
+            # TODO implement attribute on axis class
+            return self.ipap[axis].send_cmd('?syncres')
         elif parameter == 'statuslim-':
             parameter = 'statuslimneg'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
@@ -766,10 +778,16 @@ class IcepapController(MotorController):
         return result
 
     def SetAxisExtraPar(self, axis, parameter, value):
-        if parameter.lower().startswith('info'):
+        parameter = parameter.lower()
+        if parameter == 'syncres':
+            # TODO implement attribute on axis
+            value = ' '.join(value)
+            self.ipap[axis].send_cmd('syncres {}'.format(value))
+            return
+        if parameter.startswith('info'):
             value = value.split()
 
-        attr = self.param2attr[parameter.lower()]
+        attr = self.param2attr[parameter]
         try:
             self.ipap[axis].__setattr__(attr, value)
         except Exception as e:
