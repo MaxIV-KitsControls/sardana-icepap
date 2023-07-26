@@ -132,6 +132,7 @@ class IcepapController(MotorController):
         'StatusReady': {Type: bool, Access: ReadOnly},
         'StatusSettling': {Type: bool, Access: ReadOnly},
         'StatusStopCode': {Type: str, Access: ReadOnly},
+        'StatusStopCodeI': {Type: str, Access: ReadOnly},
         'StatusVersErr': {Type: bool, Access: ReadOnly},
         'StatusWarning': {Type: bool, Access: ReadOnly},
         'StatusDetails': {Type: str, Access: ReadOnly},
@@ -735,6 +736,7 @@ class IcepapController(MotorController):
                   'statusready': 'state_ready',
                   'statussettling': 'state_settling',
                   'statusstopcode': 'state_stop_str',
+                  'statusstopcodei': 'state_stop_int',
                   'statusverserr': 'state_vererr',
                   'statuswarning': 'state_warning',
                   'statusdetails': 'vstatus',
@@ -770,6 +772,8 @@ class IcepapController(MotorController):
             parameter = 'statuslimpos'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
                               'compatible.')
+        elif parameter == 'state_stop_int':
+            return int(self.ipap[axis].getattribute__(state_stop_str))
 
         attr = self.param2attr[parameter]
         result = self.ipap[axis].__getattribute__(attr)
