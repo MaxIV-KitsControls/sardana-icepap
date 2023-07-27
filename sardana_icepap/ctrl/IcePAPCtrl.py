@@ -136,6 +136,8 @@ class IcepapController(MotorController):
         'StatusVersErr': {Type: bool, Access: ReadOnly},
         'StatusWarning': {Type: bool, Access: ReadOnly},
         'StatusDetails': {Type: str, Access: ReadOnly},
+        'StopCodeDetails': {Type: str, Access: ReadOnly},
+        'StopCode': {Type: int, Access: ReadOnly},
         'UseEncoderSource': {Type: bool, Access: ReadWrite},
         'EncoderSource': {Type: str, Access: ReadWrite},
         'EncoderSourceFormula': {Type: str, Access: ReadWrite},
@@ -736,7 +738,6 @@ class IcepapController(MotorController):
                   'statusready': 'state_ready',
                   'statussettling': 'state_settling',
                   'statusstopcode': 'state_stop_str',
-                  'statusstopcodei': 'state_stop_int',
                   'statusverserr': 'state_vererr',
                   'statuswarning': 'state_warning',
                   'statusdetails': 'vstatus',
@@ -764,6 +765,12 @@ class IcepapController(MotorController):
         elif parameter == 'syncres':
             # TODO implement attribute on axis class
             return self.ipap[axis].send_cmd('?syncres')
+        elif parameter == 'statusstopcodei':
+            return self.ipap[axis].state_stop_code
+        elif parameter == 'stopcode':
+            return self.ipap[axis].stopcode
+        elif parameter == 'stopcodedetails':
+            return self.ipap[axis].vstopcode
         elif parameter == 'statuslim-':
             parameter = 'statuslimneg'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
@@ -772,8 +779,6 @@ class IcepapController(MotorController):
             parameter = 'statuslimpos'
             self._log.warning('Deprecation warning! ipython 5.5.0 is not '
                               'compatible.')
-        elif parameter == 'state_stop_int':
-            return int(self.ipap[axis].stopcode
 
         attr = self.param2attr[parameter]
         result = self.ipap[axis].__getattribute__(attr)
