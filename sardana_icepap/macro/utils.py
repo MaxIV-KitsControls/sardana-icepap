@@ -204,14 +204,26 @@ class ipap_rockit(Macro):
         rockit_env[motor.name] = ipap_rockit_info
         self.setEnv(ENV_ROCKIT, rockit_env)
 
+        # Convert to step units (needed for icepap ltrack command)
+        dial_pos = motor.read_attribute("dialposition").value
+        step_per_unit = motor.read_attribute("step_per_unit").value
+        rockit_half_range_steps = (rockit_range * step_per_unit) / 2.
+        start_pos_steps = dial_pos * step_per_unit
+        low_pos_steps = start_pos_steps - rockit_half_range_steps
+        high_pos_steps = start_pos_steps + rockit_half_range_steps
+
+        self.debug(
+            "Rockit in steps: low_pos={} start_pos={} high_pos={}".format(
+                low_pos_steps, start_pos_steps, high_pos_steps))
+
         # Run the rockit movement
-        ipap_motor.set_list_table([low_pos, startPos, high_pos])
+        ipap_motor.set_list_table([low_pos_steps, start_pos_steps, high_pos_steps])
         ipap_motor.ltrack(signal="", mode="CYCLIC")
 
         if not background:
             self.info("Rocking {}, Ctrl+C to stop".format(motor.name))
             while ipap_motor.state_moving:
-                self.outputBlock('{} {}'.format(motor.name, ipap_motor.pos))
+                self.outputBlock('{} {}'.format(motor.name, motor.read_attribute("position").value))
                 time.sleep(0.5)
 
     def on_abort(self):
