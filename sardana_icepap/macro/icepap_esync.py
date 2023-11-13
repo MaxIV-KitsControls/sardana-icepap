@@ -4,7 +4,7 @@ from tango import DevState, DevFailed
 from time import sleep
 from json import dumps
 from sardana.macroserver.macro import Macro, Type
-from sardana_icepap.macro.utils import isIcepapMotor
+from sardana_icepap.macro.icepap_utils import isIcepapMotor
 
 
 class ipap_esync(Macro):
