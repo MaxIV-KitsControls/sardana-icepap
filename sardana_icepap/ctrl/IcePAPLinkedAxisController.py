@@ -43,7 +43,6 @@ controller for IcePAP (`IcepapController`), implementing;
 
 """
 
-import sardana.pool.controller as spc
 import IcePAPCtrl
 import functools
 
