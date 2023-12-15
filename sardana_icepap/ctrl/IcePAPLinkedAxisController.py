@@ -67,6 +67,21 @@ def axis2lnkname(wrapped):
             return wrapped(self, lnkname, *args, **kwargs)
     return wrapper
 
+def supermethod(wrapped):
+    """Decorator to call superclass method of same name
+
+    Usually this is handled by MRO, but is required here as we want to further
+    decorate our inherited methods.
+
+    """
+    @functools.wraps(wrapped)
+    def wrapper(self, *args, **kwargs):
+        return getattr(
+            super(type(self), self),
+            wrapped.__name__
+        )(*args, **kwargs)
+    return wrapper
+
 class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
 
     lnknames = None
@@ -153,20 +168,20 @@ class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
         return super().DeleteDevice(lnkname)
 
     @axis2lnkname
-    def PreStateOne(self, lnkname):
-        return super().PreStateOne(lnkname)
+    @supermethod
+    def PreStateOne(self, lnkname): pass
 
     @axis2lnkname
-    def StateOne(self, lnkname):
-        return super().StateOne(lnkname)
+    @supermethod
+    def StateOne(self, lnkname): pass
 
     @axis2lnkname
-    def PreReadOne(self, lnkname):
-        return super().PreReadOne(lnkname)
+    @supermethod
+    def PreReadOne(self, lnkname): pass
 
     @axis2lnkname
-    def ReadOne(self, lnkname):
-        return super().ReadOne(lnkname)
+    @supermethod
+    def ReadOne(self, lnkname): pass
 
     @axis2lnkname
     def StartOne(self, lnkname, pos):
@@ -231,8 +246,8 @@ class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
             self.stop_multiple.append(lnkname)
 
     @axis2lnkname
-    def AbortOne(self, lnkname):
-        return super().AbortOne(lnkname)
+    @supermethod
+    def AbortOne(self, lnkname): pass
 
     @axis2lnkname
     def DefinePosition(self, lnkname, position):
@@ -309,56 +324,56 @@ class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
     # -------------------------------------------------------------------------
 
     @axis2lnkname
-    def getMoveInGroup(self, lnkname):
-        return super().getMoveInGroup(lnkname)
+    @supermethod
+    def getMoveInGroup(self, lnkname): pass
 
     @axis2lnkname
-    def setMoveInGroup(self, lnkname, value):
-        return super().setMoveInGroup(lnkname, value)
+    @supermethod
+    def setMoveInGroup(self, lnkname, value): pass
 
     @axis2lnkname
-    def getAutoESYNC(self, lnkname):
-        return super().getAutoESYNC(lnkname)
+    @supermethod
+    def getAutoESYNC(self, lnkname): pass
 
     @axis2lnkname
-    def setAutoESYNC(self, lnkname, value):
-        return super().setAutoESYNC(lnkname, value)
+    @supermethod
+    def setAutoESYNC(self, lnkname, value): pass
 
     @axis2lnkname
-    def getMotorEnabled(self, lnkname):
-        return super().getMotorEnabled(lnkname)
+    @supermethod
+    def getMotorEnabled(self, lnkname): pass
 
     @axis2lnkname
-    def setMotorEnabled(self, lnkname, value):
-        return super().setMotorEnabled(lnkname, value)
+    @supermethod
+    def setMotorEnabled(self, lnkname, value): pass
 
     @axis2lnkname
-    def getUseEncoderSource(self, lnkname):
-        return super().getUseEncoderSource(lnkname)
+    @supermethod
+    def getUseEncoderSource(self, lnkname): pass
 
     @axis2lnkname
-    def setUseEncoderSource(self, lnkname, value):
-        return super().setUseEncoderSource(lnkname, value)
+    @supermethod
+    def setUseEncoderSource(self, lnkname, value): pass
 
     @axis2lnkname
-    def getEncoderSource(self, lnkname):
-        return super().getEncoderSource(lnkname)
+    @supermethod
+    def getEncoderSource(self, lnkname): pass
 
     @axis2lnkname
-    def setEncoderSource(self, lnkname, value):
-        return super().setEncoderSource(lnkname, value)
+    @supermethod
+    def setEncoderSource(self, lnkname, value): pass
 
     @axis2lnkname
-    def getEncoderSourceFormula(self, lnkname):
-        return super().getEncoderSourceFormula(lnkname)
+    @supermethod
+    def getEncoderSourceFormula(self, lnkname): pass
 
     @axis2lnkname
-    def setEncoderSourceFormula(self, lnkname, value):
-        return super().setEncoderSourceFormula(lnkname, value)
+    @supermethod
+    def setEncoderSourceFormula(self, lnkname, value): pass
 
     @axis2lnkname
-    def getEncoder(self, lnkname):
-        return super().getEncoder(lnkname)
+    @supermethod
+    def getEncoder(self, lnkname): pass
 
     @axis2lnkname
     def GetAxisExtraPar(self, lnkname, name):
