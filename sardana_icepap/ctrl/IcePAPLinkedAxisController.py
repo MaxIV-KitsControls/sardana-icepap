@@ -15,8 +15,9 @@
 Modern IcePAP firmware provides support for grouping drivers into [linked
 axes][ipap-linked]. Key features;
 
-* Prevents driving individual axes by protecting driver board level commands *
-Synchronized motion stop/start * Consolidated linked axis status register
+* Prevents driving individual axes by protecting driver board level commands
+* Synchronized motion stop/start
+* Consolidated linked axis status register
 
 Whilst linked axes are fully supoported in FW, the python `icepap` library
 provides no explicit support for them. One workaround is to leverage the
@@ -32,9 +33,10 @@ be used where available.
 This controller can therefore be considered a wrapper around the main Sardana
 controller for IcePAP (`IcepapController`), implementing;
 
-* Addition of `icepap` library aliases for all linked axes * Wrapping of
-Sardana controller method with axis (numeric) to linked axis (string) names *
-Overriding/extending Sardana controller methods to use system level commands
+* Addition of `icepap` library aliases for all linked axes
+* Wrapping of Sardana controller method with axis (numeric) to linked axis
+  (string) names
+* Overriding/extending Sardana controller methods to use system level commands
 
 [ipap-linked]: http://kits-maxiv.gitlab-pages.maxiv.lu.se/doc-maxiv-icepap-user/operation_instructions.html#linked-axes
 [py-alias]: https://github.com/ALBA-Synchrotron/pyIcePAP/blob/master/icepap/controller.py#L308
