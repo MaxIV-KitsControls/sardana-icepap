@@ -216,11 +216,11 @@ class IcepapController(MotorController):
 
 
         if axis in self.ipap:
-            self._log.info('Added axis %d.' % axis)
+            self._log.info(f'Added axis {axis}.')
         else:
             self.attributes[axis]['motor_enabled'] = False
-            self._log.warning('Added axis %d BUT NOT ALIVE -> '
-                              'MotorEnabled set to False.' % axis)
+            self._log.warning(f'Added axis {axis} BUT NOT ALIVE -> '
+                              'MotorEnabled set to False.')
 
     def DeleteDevice(self, axis):
         """ Nothing special to do. """
@@ -367,17 +367,17 @@ class IcepapController(MotorController):
                     log.error('ReadOne (%s): Error %s' % (axis, repr(e)))
                     raise
             else:
-                log.warning('ReadOne(%s(%d)) Not enabled. Check the Driver '
-                            'Board is present in %s.', name, axis, self.Host)
-                raise Exception('ReadOne(%s(%d)) Not enabled: No position '
-                                'value available' % (name, axis))
+                log.warning(f'ReadOne({name}({axis})) Not enabled. Check the Driver '
+                            f'Board is present in {self.Host}.')
+                raise Exception(f'ReadOne({name}({axis})) Not enabled: No position '
+                                'value available')
 
         try:
             spu = self.attributes[axis]["step_per_unit"]
             pos = self.attributes[axis]['position_value']
             return pos / spu
         except Exception:
-            log.error('ReadOne(%s(%d)) Exception:', name, axis, exc_info=1)
+            log.error(f'ReadOne({name}({axis})) Exception:', exc_info=1)
             raise
 
     def PreStartAll(self):
@@ -415,16 +415,14 @@ class IcepapController(MotorController):
                 try:
                     self.ipap[axis].esync()
                 except Exception as e:
-                    self._log.error('StartOne(%d,%f).\nException:\n%s' %
-                                    (axis, pos, str(e)))
+                    self._log.error(f'StartOne({axis},{pos}).\nException:\n{str(e)}')
                     return False
 
             try:
                 current_source_pos = self.getEncoder(axis)
                 current_steps_pos = self.ipap[axis].pos
             except Exception as e:
-                self._log.error('StartOne(%d,%f).\nException:\n%s' %
-                                (axis, pos, str(e)))
+                self._log.error(f'StartOne({axis},{pos}).\nException:\n{str(e)}')
                 return False
             pos_increment = pos - current_source_pos
             steps_increment = pos_increment * spu
@@ -489,8 +487,7 @@ class IcepapController(MotorController):
         except Exception as e:
             msg = 'Problems while trying to determine velocity to ' + \
                   'acceleration factor'
-            self._log.error('StopOne(%d): %s. Trying to abort...' %
-                            (axis, msg))
+            self._log.error(f'StopOne({axis}): {msg}. Trying to abort...')
             self._log.debug(e)
             self.AbortOne(axis)
             raise Exception(msg)
@@ -650,8 +647,7 @@ class IcepapController(MotorController):
                 self.attributes[axis][enc_src_name] = \
                     AttributeProxy(value)
         except Exception as e:
-            self._log.error('SetAxisExtraPar(%d,%s).\nException:\n%s' %
-                            (axis, 'EncoderSource', str(e)))
+            self._log.error(f'SetAxisExtraPar({axis},EncoderSource).\nException:\n{str(e)}')
             self.attributes[axis]['use_encoder_source'] = False
 
     def getEncoderSourceFormula(self, axis):
@@ -679,11 +675,8 @@ class IcepapController(MotorController):
             else:
                 return float('NaN')
         except Exception as e:
-            msg = 'Encoder(%d). Could not read from encoder ' \
-                  'source (%s)\nException:\n%s' % \
-                  (axis, self.attributes[axis]['encoder_source'],
-                   str(e))
-
+            msg = f'Encoder({axis}). Could not read from encoder ' \
+                  f'source ({self.attributes[axis]["encoder_source"]})\nException:\n{str(e)}'
             self._log.error(msg)
             raise e
 
