@@ -1,14 +1,8 @@
 from setuptools import setup, find_packages
 
-# The version is updated automatically with bumpversion
-# Do not update manually
-__version = "2.5.1"
-
-
 setup(
-    name="sardana_icepap",
-    version=__version,
-    packages=find_packages(),
-    install_requires=["sardana", "icepap", "setuptools"],
-    description="IcePAP Sardana controller."
+    name="sardana-icepap",
+    use_scm_version=True,
+    packages=find_packages(exclude=("tests", "tests.*")),
+    install_requires=["sardana", "icepap"],
 )
