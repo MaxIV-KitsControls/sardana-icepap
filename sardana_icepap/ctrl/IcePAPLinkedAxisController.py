@@ -116,6 +116,7 @@ class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
         Remove inherited axis attributes which are unavailable for linked axes
 
         """
+        self.axis_attributes = self.axis_attributes.copy()
         self.axis_attributes.pop("PowerInfo")            # Board command only
         self.axis_attributes.pop("StopCode")             # Board functionality only
         self.axis_attributes.pop("StopCodeDetails")      # Board functionality only
