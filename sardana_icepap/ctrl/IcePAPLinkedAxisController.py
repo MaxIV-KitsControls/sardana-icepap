@@ -137,7 +137,7 @@ class IcepapLinkedAxisController(IcePAPCtrl.IcepapController):
     def _init_lnknames(self):
         """Populate linked axis name mapping from IcePAP query"""
         self.lnknames = {}
-        lines = self.ipap.send_cmd("?LINKED")
+        lines = self.ipap.get_linked()
         if lines:
             for line in lines:
                 words = line.split()
