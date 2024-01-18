@@ -48,23 +48,47 @@ def fromAxisToCrateNr(axis_nr):
     return crate_nr
 
 
-def restoreFromRockitEnv(macro, motor):
-    rockit_env = macro.getEnv(ENV_ROCKIT)
+def getIcepapMotor(motor_name):
+    axis = motor_name.getAxis()
+    ctrl_obj = motor_name.getControllerObj()
+    icepap_host = ctrl_obj.get_property('host')['host'][0]
+    ipap = icepap.IcePAPController(icepap_host)    
+    return ipap[axis]
+
+
+def restoreFromRockitEnv(macroObj):
+    rockit_env = macroObj.getEnv(ENV_ROCKIT)
+    motor = macroObj.rockit_motor
     try:
         start_pos = rockit_env[motor.name]["startPos"]
         original_vel = rockit_env[motor.name]["velocity"]
-        macro.info("Returning %s to initial position %f" %
-                   (motor.name, start_pos))
+
+        macroObj.info("Stopping motor %s" % motor.name)
+        macroObj.debug(motor.status())
+        macroObj.debug(motor.state)
+        macroObj.ipap_motor.stop()
+        timeout = 3
+        initime = time.time()
+        while macroObj.ipap_motor.state_moving:
+            if time.time() - initime > timeout:
+                raise Exception("Failed to stop motor %s" % motor.name)
+            time.sleep(0.5)
+        macroObj.debug(motor.status())
+        macroObj.debug(motor.state)
+
+        macroObj.info("Returning %s to initial position %f" %
+                      (motor.name, start_pos))
         motor.move(start_pos)
-        # macro.execMacro("umv %s %f" % (motor.name, start_pos))
-        macro.info("Restoring %s velocity to %f" % (motor.name, original_vel))
+
+        macroObj.info("Restoring %s velocity to %f" %
+                      (motor.name, original_vel))
         motor.write_attribute("velocity", original_vel)
         # remove motor info from ENV
         rockit_env.pop(motor.name)
-        macro.setEnv(ENV_ROCKIT, rockit_env)
+        macroObj.setEnv(ENV_ROCKIT, rockit_env)
     except KeyError:
-        macro.error('Motor %s not found in env %s, cannot restore pos/vel' %
-                    (motor.name, ENV_ROCKIT))
+        macroObj.error('Motor %s not found in env %s, cannot restore pos/vel' %
+                       (motor.name, ENV_ROCKIT))
         return
 
 
@@ -123,12 +147,27 @@ def ipap_jog(self, motor, velocity):
     poolObj.SendToController([ctrlName, "%d: JOG %d" % (axis, velocity)])
 
 
-@macro([["motor", Type.Motor, None, "motor to stop rockit"]])
+@macro()
+def ipap_rockit_list(self):
+    try:
+        rockit_env = self.getEnv(ENV_ROCKIT)
+    except UnknownEnv:
+        self.error("Rockit ENV var not found")
+        return
+    self.info("The following motors are currently ROCKING:")
+    for motor in rockit_env.keys():
+        self.info("- %s: %s" % (motor, rockit_env[motor]["rockit"]))
+
+
+@macro([["motor", Type.Motor, Optional, None, "motor to stop rockit"]])
 def ipap_rockit_stop(self, motor):
-    self.info("Stopping motor")
-    motor.stop()
-    self.info("Restoring original position and velocity")
-    restoreFromRockitEnv(self, motor)
+    if motor is None:
+        self.error("Please provide a motor to stop.")
+        self.execMacro("ipap_rockit_list")
+        return
+    self.rockit_motor = motor
+    self.ipap_motor = getIcepapMotor(motor)
+    restoreFromRockitEnv(self)
 
 
 class ipap_rockit(Macro):
@@ -144,25 +183,16 @@ class ipap_rockit(Macro):
          "Move between [current - range / 2, current + range / 2]"],
         ["background", Type.Boolean, False,
          "Run in background (default = False)"],
-        ["velocity", Type.Integer, Optional, "velocity (default = current)"],
+        ["velocity", Type.Float, Optional, "velocity (default = current)"],
         ["force", Type.Boolean, False,
          "Ignore previous saves in environment (default = False)"]
     ]
 
     def run(self, motor, rockit_range, background, velocity, force):
         self.rockit_motor = motor
-        axis = motor.getAxis()
-        ctrl_obj = motor.getControllerObj()
-        icepap_host = ctrl_obj.get_property('host')['host'][0]
-        ipap = icepap.IcePAPController(icepap_host)
-        ipap_motor = ipap[axis]
+        self.ipap_motor = getIcepapMotor(motor)
 
         startPos = motor.read_attribute("position").value
-        ipap_rockit_info = {
-            "startPos": startPos,
-            "velocity": motor.read_attribute("velocity").value
-        }
-
         # Check position limits and velocity
         low_pos = startPos - rockit_range / 2.
         high_pos = startPos + rockit_range / 2.
@@ -189,6 +219,15 @@ class ipap_rockit(Macro):
                     "Velocity above maximum allowed (%f), aborting" % max_vel)
                 return
             motor.write_attribute("velocity", velocity)
+            rockit_vel = velocity
+        else:
+            rockit_vel = motor.read_attribute("velocity").value
+            
+        ipap_rockit_info = {
+            "startPos": startPos,
+            "velocity": motor.read_attribute("velocity").value,
+            "rockit": "From %f to %f at velocity=%f" % (low_pos, high_pos, rockit_vel)
+        }
 
         # Save position and velocity to env var to recover when stopping
         # If there are already saved values for the motor, notify and abort
@@ -217,20 +256,17 @@ class ipap_rockit(Macro):
                 low_pos_steps, start_pos_steps, high_pos_steps))
 
         # Run the rockit movement
-        ipap_motor.set_list_table([low_pos_steps, start_pos_steps, high_pos_steps])
-        ipap_motor.ltrack(signal="", mode="CYCLIC")
+        self.ipap_motor.set_list_table([low_pos_steps, start_pos_steps, high_pos_steps])
+        self.ipap_motor.ltrack(signal="", mode="CYCLIC")
 
         if not background:
             self.info("Rocking {}, Ctrl+C to stop".format(motor.name))
-            while ipap_motor.state_moving:
+            while self.ipap_motor.state_moving:
                 self.outputBlock('{} {}'.format(motor.name, motor.read_attribute("position").value))
                 time.sleep(0.5)
 
     def on_abort(self):
-        self.info("Stopping motor")
-        self.rockit_motor.stop()
-        self.info("Restoring original position and velocity")
-        restoreFromRockitEnv(self, self.rockit_motor)
+        restoreFromRockitEnv(self)
 
 
 @macro([["motor", Type.Motor, None, "motor to reset"]])
