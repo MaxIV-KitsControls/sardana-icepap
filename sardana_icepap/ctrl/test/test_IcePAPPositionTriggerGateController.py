@@ -27,46 +27,53 @@ import PyTango
 from taurus.test.base import insertTest
 from sardana.pool.pooldefs import SynchDomain
 from sardana.pool.poolcontrollers.test import TriggerGateControllerTestCase
-from sardana_icepap.ctrl.IcePAPPositionTriggerGateController import\
-                                            IcePAPPositionTriggerGateController
+from sardana_icepap.ctrl.IcePAPPositionTriggerGateController import (
+    IcePAPPositionTriggerGateController,
+)
 
-configuration = [dict(delay={SynchDomain.Position: 0},
-                      initial={SynchDomain.Position: 0},
-                      active={SynchDomain.Position: 1},
-                      total={SynchDomain.Position: 3},
-                      repeats=10)]
+configuration = [
+    dict(
+        delay={SynchDomain.Position: 0},
+        initial={SynchDomain.Position: 0},
+        active={SynchDomain.Position: 1},
+        total={SynchDomain.Position: 3},
+        repeats=10,
+    )
+]
 
 
-@insertTest(helper_name='generation', configuration=configuration)
-@insertTest(helper_name='stateOne')
+@insertTest(helper_name="generation", configuration=configuration)
+@insertTest(helper_name="stateOne")
 class IcePAPPositionTriggerGateController(TriggerGateControllerTestCase):
     KLASS = IcePAPPositionTriggerGateController
-    PROPS = {'Motors': 'mot_test',
-             'Info_channels': 'InfoA InfoB InfoC,'}
+    PROPS = {"Motors": "mot_test", "Info_channels": "InfoA InfoB InfoC,"}
     AXIS = 1
     DEBUG = False
 
     def post_configuration_hook(self):
-        motor_name = self.PROPS.get('Motors').split(',')[0]
+        motor_name = self.PROPS.get("Motors").split(",")[0]
         motor = PyTango.DeviceProxy(motor_name)
-        motor.write_attribute('velocity',2000)
-        motor.write_attribute('acceleration', 0.01)
-        motor.write_attribute_asynch('position', -20)
+        motor.write_attribute("velocity", 2000)
+        motor.write_attribute("acceleration", 0.01)
+        motor.write_attribute_asynch("position", -20)
         while motor.State() == PyTango.DevState.MOVING:
             time.sleep(0.01)
         group = self.configuration[0]
-        initial = group['initial'][SynchDomain.Position]
-        total = group['total'][SynchDomain.Position]
-        repeats = group['repeats'] - 1
+        initial = group["initial"][SynchDomain.Position]
+        total = group["total"][SynchDomain.Position]
+        repeats = group["repeats"] - 1
         self._final_pos = initial + (total * repeats) + 20
-        motor.write_attribute_asynch('position', self._final_pos)
+        motor.write_attribute_asynch("position", self._final_pos)
 
     def post_generation_hook(self):
-        motor_name = self.PROPS.get('Motors').split(',')[0]
+        motor_name = self.PROPS.get("Motors").split(",")[0]
         motor = PyTango.DeviceProxy(motor_name)
         pos = motor.position
-        msg = ('The motor %s is not in the expected position %s, %s'
-               %(motor.name, pos, self._final_pos))
+        msg = "The motor %s is not in the expected position %s, %s" % (
+            motor.name,
+            pos,
+            self._final_pos,
+        )
         # check if the motor is in the expected position
         self.assertEqual(pos, self._final_pos, msg)
         # check if the ctrl state is ON

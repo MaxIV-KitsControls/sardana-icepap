@@ -10,5 +10,5 @@ setup(
     version=__version,
     packages=find_packages(),
     install_requires=["sardana", "icepap", "setuptools"],
-    description="IcePAP Sardana controller."
+    description="IcePAP Sardana controller.",
 )

@@ -24,34 +24,33 @@
 import numpy
 import taurus
 
-from sardana import State
 from sardana.pool.pooldefs import SynchDomain, SynchParam
 from sardana.pool.controller import TriggerGateController
-from sardana.pool.controller import Type, Access, Description, DefaultValue
+from sardana.pool.controller import Type, Description
 
 
 class IcePAPPositionTriggerGateController(TriggerGateController):
-    """Basic IcePAPPositionTriggerGateController.
-    """
+    """Basic IcePAPPositionTriggerGateController."""
 
     organization = "ALBA-Cells"
     gender = "TriggerGate"
     model = "Icepap"
 
-    ActivePeriod = 50e-6 # 50 micro seconds
+    ActivePeriod = 50e-6  # 50 micro seconds
 
     # The properties used to connect to the ICEPAP motor controller
     ctrl_properties = {
-        'Motors': {Type: str,
-                   Description: 'List of IcePap motors name separated by '
-                                'comma(s)'
+        "Motors": {
+            Type: str,
+            Description: "List of IcePap motors name separated by " "comma(s)",
         },
-        'Info_channels': {Type: str,
-                          Description: 'List of groups of Info channel(s) '
-                                       'separated by space(s) to be used as '
-                                       'trigger separated by comma(s). '
-                                       'e.g: "InfoA InfoB,InfoB InfoC,InfoB"'
-        }
+        "Info_channels": {
+            Type: str,
+            Description: "List of groups of Info channel(s) "
+            "separated by space(s) to be used as "
+            "trigger separated by comma(s). "
+            'e.g: "InfoA InfoB,InfoB InfoC,InfoB"',
+        },
     }
 
     def __init__(self, inst, props, *args, **kwargs):
@@ -63,28 +62,28 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         :return:
         """
         TriggerGateController.__init__(self, inst, props, *args, **kwargs)
-        self._log.debug('IcePAPPositionTriggerCtr init....')
+        self._log.debug("IcePAPPositionTriggerCtr init....")
         self.triggers = {}
-        self.motor_names = self.Motors.split(',')
-        self.info_channels = list(map(str.split,
-                                      self.Info_channels.split(',')))
+        self.motor_names = self.Motors.split(",")
+        self.info_channels = list(map(str.split, self.Info_channels.split(",")))
 
     def AddDevice(self, axis):
         """
         :param axis: axis of the controller
         :return:
         """
-        self._log.debug('AddDevice(%d): entering...' % axis)
+        self._log.debug("AddDevice(%d): entering..." % axis)
         idx = axis - 1
         motor = taurus.Device(self.motor_names[idx])
         info_channels = self.info_channels[idx]
-        self.triggers[idx] = {'motor': motor,
-                              'offset': 0,
-                              'passive_interval': 0,
-                              'repetition': 1,
-                              'sign': 1,
-                              'info_channels': info_channels
-                              }
+        self.triggers[idx] = {
+            "motor": motor,
+            "offset": 0,
+            "passive_interval": 0,
+            "repetition": 1,
+            "sign": 1,
+            "info_channels": info_channels,
+        }
 
     def DeleteDevice(self, axis):
         """
@@ -96,59 +95,57 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
 
     def StateOne(self, axis):
         """Get the trigger/gate state"""
-        self._log.debug('StateOne(%d): entering...' % axis)
+        self._log.debug("StateOne(%d): entering..." % axis)
         idx = axis - 1
         tg = self.triggers[idx]
-        motor = tg['motor']
+        motor = tg["motor"]
         return motor.state(), motor.status()
 
     def PreStartOne(self, axis, value):
-        """PreStart the specified trigger
-        """
-        self._log.debug('PreStartOne(%d): entering...' % axis)
+        """PreStart the specified trigger"""
+        self._log.debug("PreStartOne(%d): entering..." % axis)
         idx = axis - 1
         tg = self.triggers[idx]
-        motor = tg['motor']
-        for info_chn in tg['info_channels']:
+        motor = tg["motor"]
+        for info_chn in tg["info_channels"]:
             info_cfg = motor.__getattr__(info_chn).upper()
-            if info_cfg != 'ECAM NORMAL':
-                msg = ('PreStartOne(%d): The axis has the %s wrong '
-                      'configured (%s)' %(idx, info_chn.upper(), info_cfg))
+            if info_cfg != "ECAM NORMAL":
+                msg = (
+                    "PreStartOne(%d): The axis has the %s wrong "
+                    "configured (%s)" % (idx, info_chn.upper(), info_cfg)
+                )
                 self._log.debug(msg)
                 return False
-#         pos0 = motor.position
-#         velocity = motor.velocity
-#         offset = tg.get('offset', 0)
-#         sign = tg.get('sign', 1)
-#         tg['active_interval'] = active_interval = self.ActivePeriod * velocity
-#         repetitions = tg.get('repetitions', 1)
-#         passive_interval = tg.get('passive_interval')
-#         start_pos = pos0 + offset
-#         step = (active_interval + passive_interval) * sign
-#         end_pos = step * repetitions
-#         # TODO if we want a trigger in the last position:
-#         # - end_pos +=  active_interval + passive_interval
-#         # - repetitions += 1
-#         motor.ecamdat = [start_pos, end_pos, repetitions]
+        #         pos0 = motor.position
+        #         velocity = motor.velocity
+        #         offset = tg.get('offset', 0)
+        #         sign = tg.get('sign', 1)
+        #         tg['active_interval'] = active_interval = self.ActivePeriod * velocity
+        #         repetitions = tg.get('repetitions', 1)
+        #         passive_interval = tg.get('passive_interval')
+        #         start_pos = pos0 + offset
+        #         step = (active_interval + passive_interval) * sign
+        #         end_pos = step * repetitions
+        #         # TODO if we want a trigger in the last position:
+        #         # - end_pos +=  active_interval + passive_interval
+        #         # - repetitions += 1
+        #         motor.ecamdat = [start_pos, end_pos, repetitions]
 
         return True
 
     def StartOne(self, axis, value):
-        """Overwrite the StartOne method
-        """
+        """Overwrite the StartOne method"""
         pass
 
     def AbortOne(self, axis):
-        """Start the specified trigger
-        """
-        self._log.debug('AbortOne(%d): entering...' % axis)
+        """Start the specified trigger"""
+        self._log.debug("AbortOne(%d): entering..." % axis)
 
     def SetAxisPar(self, axis, name, value):
         idx = axis - 1
         tg = self.triggers[idx]
         name = name.lower()
-        pars = ['offset', 'passive_interval', 'repetitions', 'sign',
-                 'info_channels']
+        pars = ["offset", "passive_interval", "repetitions", "sign", "info_channels"]
         if name in pars:
             tg[name] = value
 
@@ -158,19 +155,18 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         name = name.lower()
         v = tg.get(name, None)
         if v is None:
-            msg = ('GetAxisPar(%d). The parameter %s does not exist.'
-                    % (axis, name))
+            msg = "GetAxisPar(%d). The parameter %s does not exist." % (axis, name)
             self._log.error(msg)
         return v
 
     def SynchOne(self, axis, configuration):
         idx = axis - 1
-        motor = self.triggers[idx]['motor']
+        motor = self.triggers[idx]["motor"]
 
         # TODO Implement the multiple groups
-        step_per_unit = motor['step_per_unit'].value
-        offset = motor['offset'].value
-        sign = motor['sign'].value
+        step_per_unit = motor["step_per_unit"].value
+        offset = motor["offset"].value
+        sign = motor["sign"].value
 
         group = configuration[0]
         initial_user = group[SynchParam.Initial][SynchDomain.Position]
@@ -180,8 +176,10 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         initial = (initial_user - offset) * (step_per_unit / sign)
         total = total_user * (step_per_unit / sign)
         final = initial + (total * nr_points)
-        self._log.debug('IcepapTriggerCtr configuration: %f %f %d %d' %
-                        (initial, final, nr_points, total))
+        self._log.debug(
+            "IcepapTriggerCtr configuration: %f %f %d %d"
+            % (initial, final, nr_points, total)
+        )
 
         # There is a limitation of numbers of point on the icepap (8192)
         # ecamdat = motor.getAttribute('ecamdatinterval')
@@ -190,7 +188,9 @@ class IcePAPPositionTriggerGateController(TriggerGateController):
         # The ecamdattable attribute is protected against non increasing list
         # at the icepap library level. HOWEVER, is not protected agains list
         #  with repeated elements
-        trigger_positions_tables = numpy.linspace(int(initial), int(final-total), int(nr_points))
-        self._log.debug('trigger table %s'%str(trigger_positions_tables))
-        ecamdattable = motor.getAttribute('ecamdattable')
+        trigger_positions_tables = numpy.linspace(
+            int(initial), int(final - total), int(nr_points)
+        )
+        self._log.debug("trigger table %s" % str(trigger_positions_tables))
+        ecamdattable = motor.getAttribute("ecamdattable")
         ecamdattable.write(trigger_positions_tables, with_read=False)

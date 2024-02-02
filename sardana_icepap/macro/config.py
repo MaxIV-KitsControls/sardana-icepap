@@ -1,4 +1,3 @@
-from PyTango import DeviceProxy
 import time
 import taurus
 import json
@@ -9,8 +8,7 @@ class ipap_get_closed_loop(Macro):
     """Returns current closed loop configuration value for a given motor"""
 
     param_def = [
-        ["motor", Type.Motor, None,
-         "motor to request (must be and IcePAP motor)"],
+        ["motor", Type.Motor, None, "motor to request (must be and IcePAP motor)"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -48,10 +46,8 @@ class ipap_set_closed_loop(Macro):
     """Enables/Disables closed loop in a given motor"""
 
     param_def = [
-        ["motor", Type.Motor, None,
-         "motor to configure (must be and IcePAP motor)"],
-        ["ON/OFF", Type.String, None,
-         "ON to enable / OFF to disable closed loop"]
+        ["motor", Type.Motor, None, "motor to configure (must be and IcePAP motor)"],
+        ["ON/OFF", Type.String, None, "ON to enable / OFF to disable closed loop"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -92,26 +88,28 @@ class ipap_set_closed_loop(Macro):
         motor.write_attribute("ClosedLoop", closed_loop)
         closed_loop_rb = motor.read_attribute("ClosedLoop").value
         if closed_loop == closed_loop_rb:
-            self.output("Closed loop %s correctly set in motor %s" % (
-            action, str(motor)))
+            self.output(
+                "Closed loop %s correctly set in motor %s" % (action, str(motor))
+            )
             return True
         else:
             self.output(
                 "WARNING!: read back from the controller (%s) didn't "
-                "match the requested parameter (%s)" % (
-                str(closed_loop_rb), str(closed_loop)))
+                "match the requested parameter (%s)"
+                % (str(closed_loop_rb), str(closed_loop))
+            )
             return False
 
 
 # ---------------------------------------------------------------
-# TODO: Check the use case: Does not work in firmware 3.17 
+# TODO: Check the use case: Does not work in firmware 3.17
+
 
 class ipap_get_steps_per_turn(Macro):
     """Returns current steps per turn value for a given motor"""
 
     param_def = [
-        ["motor", Type.Motor, None,
-         "motor to request (must be and IcePAP motor)"],
+        ["motor", Type.Motor, None, "motor to request (must be and IcePAP motor)"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -133,8 +131,7 @@ class ipap_get_steps_per_turn(Macro):
                     motorOk = True
                 break
         if not motorOk:
-            raise Exception(
-                "Motor %s doesn't support closed loop" % str(motor))
+            raise Exception("Motor %s doesn't support closed loop" % str(motor))
 
     def run(self, motor):
         """Run macro"""
@@ -158,9 +155,8 @@ class ipap_set_steps_per_turn(Macro):
     """Set steps per turn value for a given motor"""
 
     param_def = [
-        ["motor", Type.Motor, None,
-         "motor to configure (must be and IcePAP motor)"],
-        ["steps", Type.Integer, None, "steps per turn value"]
+        ["motor", Type.Motor, None, "motor to configure (must be and IcePAP motor)"],
+        ["steps", Type.Integer, None, "steps per turn value"],
     ]
 
     icepap_ctrl = "IcePAPCtrl.py"
@@ -202,10 +198,11 @@ class ipap_set_steps_per_turn(Macro):
         result = pool.SendToController([controller, cmd])
 
         # sign the change in icepap controller
-        cmd = self.sign_command % \
-              (axis,
-               "Steps per turn changed on user request from macro %s on "
-               "%s" % (str(self.__class__.__name__), str(time.ctime())))
+        cmd = self.sign_command % (
+            axis,
+            "Steps per turn changed on user request from macro %s on "
+            "%s" % (str(self.__class__.__name__), str(time.ctime())),
+        )
         result = pool.SendToController([controller, cmd])
 
         # read back steps per turn to confirm command worked OK
@@ -213,15 +210,18 @@ class ipap_set_steps_per_turn(Macro):
         result = pool.SendToController([controller, cmd])
         steps_rb = int(result.split()[2])
         if steps == steps_rb:
-            self.output("Steps per turn %d correctly set in motor %s" % (
-            steps, str(motor)))
+            self.output(
+                "Steps per turn %d correctly set in motor %s" % (steps, str(motor))
+            )
             return True
         else:
             self.output(
                 "WARNING!: read back from the controller (%s) "
                 "didn't match the requested parameter "
-                "(%d)" % (str(result), steps))
+                "(%d)" % (str(result), steps)
+            )
             return False
+
 
 # ---------------------------------------------------------------
 
@@ -230,25 +230,22 @@ class ipap_tg_config(Macro):
     """
     Macro to configure the MoveableOnInput of the trigger
     """
+
     param_def = [
-        ["tg", Type.TriggerGate, None,
-         "Icepap multiplexor trigger gate (axis=0)"]
+        ["tg", Type.TriggerGate, None, "Icepap multiplexor trigger gate (axis=0)"]
     ]
 
     def run(self, tg):
-        if get_property('axis')['axis'][0] != 0:
-            raise ValueError('Only valid for multiplexor axis')
-        ipap_ctrl_name = tg.name().split('/')[1]
+        if tg.get_property("axis")["axis"][0] != 0:
+            raise ValueError("Only valid for multiplexor axis")
+        ipap_ctrl_name = tg.name().split("/")[1]
         ipap_ctrl = self.getController(ipap_ctrl_name)
         config = {}
         for element in ipap_ctrl.elementlist:
             proxy = taurus.Device(element)
             fullname = proxy.fullname
-            axis = proxy.get_property('axis')['axis'][0]
+            axis = proxy.get_property("axis")["axis"][0]
             config[fullname] = axis
         encoder = json.JSONEncoder()
         config_encoded = encoder.encode(config)
         tg.MoveableOnInput = config_encoded
-
-
-
