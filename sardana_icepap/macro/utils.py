@@ -2,6 +2,7 @@
     Macro library containing icepap related macros for the macro
     server Tango device server as part of the Sardana project.
 """
+
 from PyTango import DeviceProxy
 import icepap
 import time

@@ -102,8 +102,8 @@ def output_homing_status(macro, motorsInfoList):
     output += "{0}\n".format(colHead)
     output += "{0}\n".format(rowHead)
     output += "{0}".format(data)
-    for l in table.genOutput():
-        output += "\n{0}".format(l)
+    for line in table.genOutput():
+        output += "\n{0}".format(line)
     macro.outputBlock(output)
     macro.flushOutput()
 
