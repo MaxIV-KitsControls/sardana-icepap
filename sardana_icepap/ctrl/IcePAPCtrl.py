@@ -32,7 +32,7 @@ from icepap import IcePAPController
 from PyTango import AttributeProxy
 from sardana import State, DataAccess
 from sardana.pool.controller import MotorController, Type, Access, \
-    Description, DefaultValue, Memorize, NotMemorized, MaxDimSize
+    Description, DefaultValue, MaxDimSize
 
 
 ReadOnly = DataAccess.ReadOnly
@@ -63,8 +63,7 @@ class IcepapController(MotorController):
             Type: str,
             Description: 'Attribute to set/get the PMUX configuration. See '
                          'IcePAP user manual pag. 107',
-            Access: DataAccess.ReadWrite,
-            Memorize: NotMemorized},
+            Access: DataAccess.ReadWrite},
     }
     axis_attributes = {
         'MoveInGroup': {Type: bool, Access: ReadWrite,
