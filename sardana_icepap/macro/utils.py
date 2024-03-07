@@ -256,7 +256,7 @@ class ipap_rockit(Macro):
                 low_pos_steps, start_pos_steps, high_pos_steps))
 
         # Run the rockit movement
-        self.ipap_motor.set_list_table([low_pos_steps, start_pos_steps, high_pos_steps])
+        self.ipap_motor.set_list_table([low_pos_steps, high_pos_steps])
         self.ipap_motor.ltrack(signal="", mode="CYCLIC")
 
         if not background:
