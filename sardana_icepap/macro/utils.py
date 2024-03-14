@@ -183,12 +183,10 @@ class ipap_rockit(Macro):
          "Move between [current - range / 2, current + range / 2]"],
         ["background", Type.Boolean, False,
          "Run in background (default = False)"],
-        ["velocity", Type.Float, Optional, "velocity (default = current)"],
-        ["force", Type.Boolean, False,
-         "Ignore previous saves in environment (default = False)"]
+        ["velocity", Type.Float, Optional, "velocity (default = current)"]
     ]
 
-    def run(self, motor, rockit_range, background, velocity, force):
+    def run(self, motor, rockit_range, background, velocity):
         self.rockit_motor = motor
         self.ipap_motor = getIcepapMotor(motor)
 
@@ -222,7 +220,7 @@ class ipap_rockit(Macro):
             rockit_vel = velocity
         else:
             rockit_vel = motor.read_attribute("velocity").value
-            
+
         ipap_rockit_info = {
             "startPos": startPos,
             "velocity": motor.read_attribute("velocity").value,
@@ -235,11 +233,11 @@ class ipap_rockit(Macro):
             rockit_env = self.getEnv(ENV_ROCKIT)
         except UnknownEnv:
             rockit_env = {}
-        if motor.name in rockit_env.keys() and force is False:
-            self.error("Rockit info for %s already stored in " % motor.name +
-                       "env var %s, aborting (use force=True to overwrite)" % (
-                        ENV_ROCKIT))
+        if motor.name in rockit_env.keys() and self.ipap_motor.state_moving:
+            self.error("Motor %s already in rockit motion" % motor.name +
+                       "Stop it first with: ipap_rockit_stop %s" % motor.name)
             return
+
         rockit_env[motor.name] = ipap_rockit_info
         self.setEnv(ENV_ROCKIT, rockit_env)
 
