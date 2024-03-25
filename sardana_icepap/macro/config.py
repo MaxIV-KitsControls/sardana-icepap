@@ -236,19 +236,24 @@ class ipap_tg_config(Macro):
     ]
 
     def run(self, tg):
-        if get_property('axis')['axis'][0] != 0:
-            raise ValueError('Only valid for multiplexor axis')
-        ipap_ctrl_name = tg.name().split('/')[1]
+        tg = DeviceProxy(tg.name)
+        if int(tg.get_property('axis')['axis'][0]) != 0:
+           raise ValueError('Only valid for multiplexor axis')
+
+        ipap_ctrl_name_tg = tg.name().split('/')[1]
+        ipap_ctrl_tg = self.getController(ipap_ctrl_name_tg)
+        ipap_ctrl_name = \
+        ipap_ctrl_tg.get_property('IcepapCtrlAlias')['IcepapCtrlAlias'][0]
         ipap_ctrl = self.getController(ipap_ctrl_name)
+
         config = {}
         for element in ipap_ctrl.elementlist:
             proxy = taurus.Device(element)
-            fullname = proxy.fullname
-            axis = proxy.get_property('axis')['axis'][0]
+            fullname = proxy.name
+            axis = int(proxy.get_property('axis')['axis'][0])
             config[fullname] = axis
         encoder = json.JSONEncoder()
         config_encoded = encoder.encode(config)
         tg.MoveableOnInput = config_encoded
-
 
 

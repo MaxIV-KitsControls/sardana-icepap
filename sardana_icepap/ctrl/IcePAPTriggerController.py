@@ -83,6 +83,9 @@ class IcePAPTriggerController(TriggerGateController):
             Type: float,
             Description: 'Timeout used for the IcePAP socket communication',
             DefaultValue: 0.5
+        },
+        'DefaultAxis': {
+            Type: int, Description: 'Default axis used to generate triggers',
         }
 
     }
@@ -119,7 +122,7 @@ class IcePAPTriggerController(TriggerGateController):
         self._ipap = icepap.IcePAPController(host=self.Host, port=self.Port,
                                              timeout=self.Timeout)
         self._last_id = None
-        self._motor_axis = None
+        self._motor_axis = self.DefaultAxis
         self._motor_spu = 1
         self._is_tgtenc = False
         self._ecam_source_dict = None
@@ -357,6 +360,8 @@ class IcePAPTriggerController(TriggerGateController):
             if par == "moveableoninput":
                 self._moveable_on_input = value
             if par == "active_input":
+                if value is None:
+                    value = self.DefaultAxis
                 self._configureMotor(value, axis)
         else:
             raise ValueError(
