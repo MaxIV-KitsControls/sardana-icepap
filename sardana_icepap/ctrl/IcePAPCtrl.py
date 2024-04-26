@@ -734,7 +734,7 @@ class IcepapController(MotorController):
                   'statusready': 'state_ready',
                   'statussettling': 'state_settling',
                   'statusstopcode': 'state_stop_str',
-                  'statusverserr': 'state_vererr',
+                  'statusverserr': 'state_verserr',
                   'statuswarning': 'state_warning',
                   'statusdetails': 'vstatus',
                   }
