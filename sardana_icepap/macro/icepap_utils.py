@@ -5,6 +5,7 @@
 from PyTango import DeviceProxy
 import icepap
 import time
+import datetime
 from sardana.macroserver.macro import macro, Type, Macro, Optional
 from sardana.macroserver.msexception import UnknownEnv
 
@@ -13,6 +14,7 @@ ENV_FROM = '_IcepapEmailAuthor'
 ENV_TO = '_IcepapEmailRecipients'
 SUBJECT = 'Icepap: %s was reset by a Sardana macro'
 ENV_ROCKIT = '_IcepapRockit'
+POWERON_BAK = '_IcepapPoweron'
 
 
 # util functions
@@ -54,6 +56,39 @@ def getIcepapMotor(motor_name):
     icepap_host = ctrl_obj.get_property('host')['host'][0]
     ipap = icepap.IcePAPController(icepap_host)
     return ipap[axis]
+
+
+def getMotorPars(motor, pars):
+    return motor.read_attributes(pars)
+
+
+def _humanPar(par, fmt, error="ERROR!"):
+    fmt = '{{:{}}}'.format(fmt)
+    return error if par.has_failed else fmt.format(par.value).strip()
+
+
+def getHumanMotorPars(motor, pars, fmts):
+    values = getMotorPars(motor, pars)
+    return [_humanPar(par, fmt).strip() for par, fmt in zip(values, fmts)]
+
+
+def motorTable(motors, pars, fmts):
+    table = []
+    table.append(['Motor'] + pars)
+    rows = [[motor.name] + getHumanMotorPars(motor, pars, fmts)
+            for motor in motors]
+    for row in rows:
+        table.append(row)
+    return table
+
+
+def getSardanaIcepapMotors(macro):
+    icepapMotors = []
+    for mov in macro.getMoveables():
+        mot = macro.getMoveable(mov)
+        if isIcepapMotor(macro, mot):
+            icepapMotors.append(mot)
+    return icepapMotors
 
 
 def restoreFromRockitEnv(macroObj, motorObj=None):
@@ -285,6 +320,128 @@ class ipap_rockit(Macro):
 
     def on_abort(self):
         restoreFromRockitEnv(self, self.rockit_motor)
+
+
+@macro([["output_file", Type.String, "", "File to store the info"]])
+def ipap_motor_pars(self, output_file):
+    """
+    Generates a table of motor parameters for all IcePAP motors in the 
+    Sardana environment and optionally saves the table to a file.
+    """
+    icepapMotors = getSardanaIcepapMotors(self)
+
+    pars = ['Velocity', 'Acceleration', 'Step_per_unit', 'Offset', 'Sign', 
+            'PowerOn', 'Position', 'Indexer', 'posmotor', 'encodersource', 
+            'autoesync', 'backlash', 'closedloop']
+    fmts = ['.4', '.4', '.4', '.4', '10', '10',
+            '.4', '10', '15', '10', '10', '4', '10']
+
+    table = motorTable(icepapMotors, pars, fmts)
+    now = datetime.datetime.now()
+    formatted_date = now.strftime("%Y-%m-%d %H:%M:%S,%f")
+
+    col_widths = [max(len(str(item)) for item in col) for col in zip(*table)]
+    formatted_table = []
+
+    # title
+    title = "(ipap_motor_pars at {})".format(formatted_date)
+    formatted_table.append(title)
+    self.output(title)
+    # header
+    header = "  ".join(str(item).rjust(width)
+                       for item, width in zip(table[0], col_widths))
+    formatted_table.append(header)
+    self.info(header)
+    # line separator
+    separator = "  ".join('-' * width for width in col_widths)
+    formatted_table.append(separator)
+    self.info(separator)
+    for row in table[1:]:
+        formatted_row = "  ".join(str(item).rjust(width)
+                                  for item, width in zip(row, col_widths))
+        formatted_table.append(formatted_row)
+        self.info(formatted_row)
+
+    if output_file:
+        with open(output_file, 'a+') as f:
+            for row in formatted_table:
+                f.write(row+"\n")
+            f.write("\n")
+        self.info("Saved to {}".format(output_file))
+
+
+@macro([["apply", Type.Boolean, False, "If true, set the power, otherwise only show changes"],
+        ["storeEnv", Type.Boolean, False, "Store poweron info in sardana environment"]])
+def ipap_poweroff(self, apply, storeEnv):
+    """
+    Turns off the power for all IcePAP motors in the Sardana environment.
+    If `storeEnv` is `True`, the current power state of each motor will be
+    stored in the Sardana environment to be used by ipap_power_restore macro
+    """
+    icepapMotors = getSardanaIcepapMotors(self)
+    power_dict = {}
+    for mot in icepapMotors:
+        try:
+            power_dict[mot.name] = mot.read_attribute("PowerOn").value
+            self.info("{}: {} -> {}".format(mot.name,
+                      power_dict[mot.name], "False"))
+            if apply:
+                mot.write_attribute("PowerOn", 0)
+        except:
+            self.error("Error reading/setting power for {}".format(mot.name))
+
+    if storeEnv:
+        self.setEnv(POWERON_BAK, power_dict)
+
+    if not apply:
+        self.warning(
+            "Poweroff NOT applied. Execute 'ipap_poweroff True' to apply")
+
+
+@macro([["apply", Type.Boolean, False, "If true, set the power, otherwise only show changes"]])
+def ipap_poweron(self, apply):
+    """
+    Turns on the power for all IcePAP motors in the Sardana environment.
+    """
+    icepapMotors = getSardanaIcepapMotors(self)
+    power_dict = {}
+    for mot in icepapMotors:
+        try:
+            power_dict[mot.name] = mot.read_attribute("PowerOn").value
+            self.info("{}: {} -> {}".format(mot.name,
+                      power_dict[mot.name], "True"))
+            if apply:
+                mot.write_attribute("PowerOn", 1)
+        except:
+            self.error("Error reading/setting power for {}".format(mot.name))
+
+    if not apply:
+        self.warning(
+            "Poweron NOT applied. Execute 'ipap_poweron True' to apply")
+
+
+@macro([["apply", Type.Boolean, False, "If true, set the power, otherwise only show changes"]])
+def ipap_power_restore(self, apply):
+    """
+    This macro is intended to be used after the `ipap_poweroff` macro has been executed, 
+    to restore the power state of the motors to their previous state.
+    """
+    try:
+        power_dict = self.getEnv(POWERON_BAK)
+        for motname, power_was in power_dict.items():
+            mot = self.getMoveable(motname)
+            power_is = mot.read_attribute("PowerOn").value
+            self.info("{}: {} -> {}".format(motname, power_was, power_is))
+            if apply:
+                mot.write_attribute("PowerOn", power_was)
+        if apply:
+            self.info("Power restored")
+        else:
+            self.warning(
+                "Power NOT applied, Execute 'ipap_restore_power True' to apply")
+
+    except UnknownEnv:
+        self.error("No poweron info found in environment")
 
 
 @macro([["motor", Type.Motor, None, "motor to reset"]])
