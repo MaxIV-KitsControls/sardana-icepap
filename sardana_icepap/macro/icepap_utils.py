@@ -259,6 +259,7 @@ class ipap_rockit(Macro):
                 "Position above high user limit (%f), aborting" % max_pos)
             return
 
+        original_velocity = motor.read_attribute("velocity").value
         if velocity is not None:
             vel_obj = motor.getVelocityObj()
             min_vel, max_vel = vel_obj.getRange()
@@ -273,11 +274,11 @@ class ipap_rockit(Macro):
             motor.write_attribute("velocity", velocity)
             rockit_vel = velocity
         else:
-            rockit_vel = motor.read_attribute("velocity").value
+            rockit_vel = original_velocity
 
         ipap_rockit_info = {
             "startPos": startPos,
-            "velocity": motor.read_attribute("velocity").value,
+            "velocity": original_velocity,
             "rockit": "From %f to %f at velocity=%f" % (low_pos, high_pos, rockit_vel)
         }
 
